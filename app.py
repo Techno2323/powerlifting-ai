@@ -259,6 +259,42 @@ def load_css():
     ::-webkit-scrollbar-track { background: #111; }
     ::-webkit-scrollbar-thumb { background: #FFD70066; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+                /* Form styling */
+    [data-testid="stForm"] {
+        background: #111 !important;
+        border: 1px solid #FFD70022 !important;
+        border-radius: 0 0 20px 20px !important;
+        padding: 20px 30px !important;
+        margin-top: -20px !important;
+    }
+
+    /* Number input */
+    [data-testid="stNumberInput"] input {
+        background: #0d0d0d !important;
+        border: 1px solid #FFD70033 !important;
+        border-radius: 10px !important;
+        color: #FFD700 !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+    }
+
+    [data-testid="stNumberInput"] input:focus {
+        border: 1px solid #FFD700 !important;
+        box-shadow: 0 0 15px #FFD70044 !important;
+    }
+
+    /* Select box */
+    [data-testid="stSelectbox"] > div > div {
+        background: #0d0d0d !important;
+        border: 1px solid #FFD70033 !important;
+        border-radius: 10px !important;
+        color: #fff !important;
+    }
+                    
+
+        
     </style>
     """, unsafe_allow_html=True)
 
@@ -483,19 +519,61 @@ def show_app(user):
     # ================================================
     if plan_row is None:
         st.info("👋 No active plan found. Generate your first plan below!")
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #1a1a1a, #111);
+            border: 1px solid #FFD70033;
+            border-radius: 20px;
+            padding: 35px 40px;
+            margin: 20px 0;
+            box-shadow: 0 0 40px #FFD70011;
+        ">
+            <h2 style="text-align:center; margin-bottom:5px;">⚡ BUILD YOUR PROGRAM</h2>
+            <p style="text-align:center; color:#888; margin-bottom:30px; font-size:0.9rem; text-transform:uppercase; letter-spacing:2px;">Enter your current maxes to get started</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:30px;">
+                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
+                    <div style="font-size:2.5rem; margin-bottom:8px;">🦵</div>
+                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">SQUAT</div>
+                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
+                </div>
+                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
+                    <div style="font-size:2.5rem; margin-bottom:8px;">💪</div>
+                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">BENCH</div>
+                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
+                </div>
+                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
+                    <div style="font-size:2.5rem; margin-bottom:8px;">⚡</div>
+                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">DEADLIFT</div>
+                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         with st.form("user_form"):
-            col1, col2 = st.columns(2)
+            # Lift inputs styled row
+            col1, col2, col3 = st.columns(3)
             with col1:
-                squat = st.number_input("🦵 Best Squat (kg)", min_value=0)
-                bench = st.number_input("💪 Best Bench Press (kg)", min_value=0)
-                deadlift = st.number_input("⚡ Best Deadlift (kg)", min_value=0)
+                squat = st.number_input("🦵 Squat Max (kg)", min_value=0)
             with col2:
+                bench = st.number_input("💪 Bench Max (kg)", min_value=0)
+            with col3:
+                deadlift = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
+
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+            # Settings row
+            col4, col5, col6 = st.columns(3)
+            with col4:
                 goal = st.selectbox("🎯 Your Goal", ["Build Strength", "Bulk", "Cut"])
+            with col5:
                 days = st.selectbox("📅 Training Days/Week", [3, 4, 5, 6])
+            with col6:
                 food = st.selectbox("🍽️ Diet Type", ["Vegetarian", "Non-Vegetarian", "Eggetarian"])
 
-            submitted = st.form_submit_button("🚀 Generate My Plan", use_container_width=True)
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+            submitted = st.form_submit_button("🚀 GENERATE MY PLAN", use_container_width=True)
 
         if submitted:
             prompt = f"""

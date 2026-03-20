@@ -519,37 +519,28 @@ def show_app(user):
     # ================================================
     if plan_row is None:
         st.info("👋 No active plan found. Generate your first plan below!")
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #1a1a1a, #111);
-            border: 1px solid #FFD70033;
-            border-radius: 20px;
-            padding: 35px 40px;
-            margin: 20px 0;
-            box-shadow: 0 0 40px #FFD70011;
-        ">
-            <h2 style="text-align:center; margin-bottom:5px;">⚡ BUILD YOUR PROGRAM</h2>
-            <p style="text-align:center; color:#888; margin-bottom:30px; font-size:0.9rem; text-transform:uppercase; letter-spacing:2px;">Enter your current maxes to get started</p>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:30px;">
-                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
-                    <div style="font-size:2.5rem; margin-bottom:8px;">🦵</div>
-                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">SQUAT</div>
-                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
-                </div>
-                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
-                    <div style="font-size:2.5rem; margin-bottom:8px;">💪</div>
-                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">BENCH</div>
-                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
-                </div>
-                <div style="background:#0d0d0d; border:1px solid #FFD70033; border-radius:16px; padding:25px; text-align:center;">
-                    <div style="font-size:2.5rem; margin-bottom:8px;">⚡</div>
-                    <div style="color:#FFD700; font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; margin-bottom:4px;">DEADLIFT</div>
-                    <div style="color:#555; font-size:0.75rem;">Enter below</div>
-                </div>
-            </div>
+        st.markdown("""<div style="background:linear-gradient(135deg,#1a1a1a,#111);border:1px solid #FFD70033;border-radius:20px;padding:35px 40px;margin:20px 0;box-shadow:0 0 40px #FFD70011;">
+        <h2 style="text-align:center;color:#FFD700;font-family:Rajdhani,sans-serif;">⚡ BUILD YOUR PROGRAM</h2>
+        <p style="text-align:center;color:#888;font-size:0.9rem;text-transform:uppercase;letter-spacing:2px;">Enter your current maxes to get started</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:20px;">
+        <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
+        <div style="font-size:2.5rem;">🦵</div>
+        <div style="color:#FFD700;font-weight:700;letter-spacing:2px;">SQUAT</div>
+        <div style="color:#555;font-size:0.75rem;">Enter below</div>
         </div>
-        """, unsafe_allow_html=True)
+        <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
+        <div style="font-size:2.5rem;">💪</div>
+        <div style="color:#FFD700;font-weight:700;letter-spacing:2px;">BENCH</div>
+        <div style="color:#555;font-size:0.75rem;">Enter below</div>
+        </div>
+        <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
+        <div style="font-size:2.5rem;">⚡</div>
+        <div style="color:#FFD700;font-weight:700;letter-spacing:2px;">DEADLIFT</div>
+        <div style="color:#555;font-size:0.75rem;">Enter below</div>
+        </div>
+        </div>
+        </div>""", unsafe_allow_html=True)
 
         with st.form("user_form"):
             # Lift inputs styled row

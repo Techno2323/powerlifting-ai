@@ -155,12 +155,6 @@ def show_login():
                 else:
                     st.warning("Please enter email and password")
 
-            st.divider()
-            st.markdown("**Or login with**")
-            if st.button("🔴 Continue with Google", use_container_width=True):
-                res = sign_in_google()
-                if res:
-                    st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
 
         with tab_signup:
             st.markdown("### Create your account!")
@@ -182,12 +176,7 @@ def show_login():
                     else:
                         st.success("✅ Account created! Please check your email to verify, then login.")
 
-            st.divider()
-            st.markdown("**Or sign up with**")
-            if st.button("🔴 Continue with Google ", use_container_width=True):
-                res = sign_in_google()
-                if res:
-                    st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
+
 
 # ================================================
 # MAIN APP

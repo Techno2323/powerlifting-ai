@@ -5,7 +5,7 @@ import os
 from datetime import date, datetime, timedelta
 import pandas as pd
 
-genai.configure(api_key="AIzaSyCxqJ0jLDo_bMhZl8FUvVmdN4X1-wsyF6c")
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 st.set_page_config(page_title="Indian Powerlifting AI Coach", page_icon="🏋️", layout="wide")

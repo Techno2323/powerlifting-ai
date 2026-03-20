@@ -1,5 +1,4 @@
 saved_plan.json
 workout_log.json
 workout_history.json
-.env
-secrets.toml
+.streamlit/secrets.toml

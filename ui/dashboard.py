@@ -1,107 +1,200 @@
 import streamlit as st
-import json
 from datetime import date
-import google.generativeai as genai
-from database import save_plan, supabase
+from database import save_log_entry, archive_plan, delete_plan
+from utils import build_session_schedule, get_today_session, calculate_progress, calculate_score
 
-def show_generate(user_id):
-    st.markdown("""<div style="background:linear-gradient(135deg,#1a1a1a,#111);border:1px solid #FFD70033;border-radius:20px;padding:35px 40px;margin:20px 0;box-shadow:0 0 40px #FFD70011;">
-    <h2 style="text-align:center;color:#FFD700;font-family:Rajdhani,sans-serif;">⚡ BUILD YOUR PROGRAM</h2>
-    <p style="text-align:center;color:#888;font-size:0.9rem;text-transform:uppercase;letter-spacing:2px;">Enter your current maxes to get started</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:20px;">
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">🦵</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">SQUAT</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">💪</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">BENCH</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">⚡</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">DEADLIFT</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    </div></div>""", unsafe_allow_html=True)
+GLOSSARY = {
+    "rpe": "RPE = Rate of Perceived Exertion. Scale 1-10. RPE 7 = 3 more reps in tank. RPE 8 = 2 more. RPE 9 = 1 more. RPE 10 = absolute max.",
+    "sets": "Sets = how many times you repeat a group of reps. 3 sets means do the exercise 3 times with rest in between.",
+    "reps": "Reps = Repetitions. How many times you lift in one set.",
+    "rdl": "RDL = Romanian Deadlift. Hinge at hips with slight knee bend. Great for hamstrings.",
+    "ohp": "OHP = Overhead Press. Press barbell from shoulders straight overhead.",
+    "amrap": "AMRAP = As Many Reps As Possible. Do as many reps as you can with good form.",
+    "deload": "Deload = A lighter week to let your body recover and come back stronger.",
+}
 
-    with st.form("user_form"):
+def show_exercise(ex):
+    c1, c2 = st.columns([6, 1])
+    with c1:
+        st.markdown(f"> **{ex['name']}** — {ex['sets']} sets × {ex['reps']} reps @ RPE {ex['rpe']}  \n> *{ex['note']}*")
+    with c2:
+        relevant = [t for t in GLOSSARY if t in f"{ex['name']} {ex['note']} rpe sets reps".lower()]
+        if relevant:
+            with st.popover("💡"):
+                st.markdown("**📖 Quick Glossary**")
+                for term in relevant:
+                    st.markdown(f"**{term.upper()}** — {GLOSSARY[term]}")
+
+def show_dashboard(user, plan_row, log):
+    from datetime import datetime
+    user_id = user.id
+    plan = plan_row["plan_data"]
+    start_date = datetime.strptime(plan_row["start_date"], "%Y-%m-%d").date()
+    today = date.today()
+    days_elapsed = (today - start_date).days
+    training_days = plan.get("training_days", 3)
+
+    all_sessions = build_session_schedule(plan, start_date)
+    today_session = get_today_session(all_sessions, log)
+    total_completed, total_sessions, overall_progress, total_score = calculate_progress(all_sessions, log)
+
+    current_week = today_session["week"] if today_session else 4
+    week_sessions = [s for s in all_sessions if s["week"] == current_week]
+    week_completed = len([s for s in week_sessions if log.get(s["session_id"], {}).get("completed")])
+    week_progress = int((week_completed / len(week_sessions)) * 100) if week_sessions else 0
+
+    # Program Complete
+    if total_completed >= total_sessions:
+        st.balloons()
+        st.success("🏆 YOU COMPLETED YOUR 4-WEEK PROGRAM! ABSOLUTE BEAST MODE!")
         col1, col2, col3 = st.columns(3)
-        with col1:
-            squat = st.number_input("🦵 Squat Max (kg)", min_value=0)
-        with col2:
-            bench = st.number_input("💪 Bench Max (kg)", min_value=0)
-        with col3:
-            deadlift = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
+        col1.metric("✅ Sessions Done", f"{total_completed}/{total_sessions}")
+        col2.metric("🏆 Final Score", f"{total_score}")
+        col3.metric("📅 Days of Grinding", str(days_elapsed))
+        st.divider()
+        if st.button("🚀 Generate New Plan", use_container_width=True):
+            archive_plan(user_id, plan, log)
+            delete_plan(user_id)
+            st.rerun()
+        return
 
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            goal = st.selectbox("🎯 Your Goal", ["Build Strength", "Bulk", "Cut"])
-        with col5:
-            days = st.selectbox("📅 Training Days/Week", [3, 4, 5, 6])
-        with col6:
-            food = st.selectbox("🍽️ Diet Type", ["Vegetarian", "Non-Vegetarian", "Eggetarian"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏠 Dashboard", "📋 Full Program", "🍽️ Diet Plan", "💡 Tips"])
 
-        submitted = st.form_submit_button("🚀 GENERATE MY PLAN", use_container_width=True)
+    # Dashboard Tab
+    with tab1:
+        st.subheader("📊 Your Progress")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("✅ Sessions Done", f"{total_completed}/{total_sessions}")
+        col2.metric("🏆 Total Score", f"{total_score} pts")
+        col3.metric("📅 Day", f"{min(days_elapsed + 1, 28)}/28")
 
-    if submitted:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        prompt = f"""
-        You are an expert powerlifting coach for Indian athletes.
-        User stats:
-        - Squat: {squat} kg, Bench: {bench} kg, Deadlift: {deadlift} kg
-        - Goal: {goal}, Training days per week: {days}, Diet: {food}
+        st.markdown("**Overall Program Progress**")
+        st.progress(overall_progress / 100, text=f"{overall_progress}% Complete")
+        st.markdown(f"**Week {current_week} Progress**")
+        st.progress(week_progress / 100, text=f"Week {current_week}: {week_completed}/{len(week_sessions)} sessions done")
+        st.divider()
 
-        Return ONLY valid JSON, no markdown, no backticks, no extra text.
-        {{
-            "summary": "2 line motivational summary",
-            "goal": "{goal}",
-            "training_days": {days},
-            "weeks": [
-                {{
-                    "week": 1,
-                    "focus": "one line focus",
-                    "days": [
-                        {{
-                            "day_number": 1,
-                            "label": "Day 1 - Squat Emphasis",
-                            "exercises": [
-                                {{"name": "Squat", "sets": 3, "reps": "6", "rpe": "7", "note": "focus on depth"}}
-                            ]
-                        }}
-                    ]
-                }}
-            ],
-            "diet": {{
-                "calories": 3000,
-                "protein": 160,
-                "carbs": 420,
-                "fats": 75,
-                "meals": [
-                    {{
-                        "time": "8:00 AM",
-                        "name": "Breakfast",
-                        "food": "Paneer bhurji with 2 rotis",
-                        "protein": 35,
-                        "carbs": 60,
-                        "fats": 20
-                    }}
-                ]
-            }},
-            "tips": ["tip 1", "tip 2", "tip 3"]
-        }}
-        Generate all 4 weeks with {days} training days each.
-        """
-        with st.spinner("Building your personalized plan... 🔥"):
-            try:
-                response = model.generate_content(prompt)
-                raw = response.text.strip()
-                if raw.startswith("```"):
-                    raw = raw.split("```")[1]
-                    if raw.startswith("json"):
-                        raw = raw[4:]
-                raw = raw.strip()
-                data = json.loads(raw)
-                data["start_date"] = str(date.today())
-                data["training_days"] = days
-                save_plan(user_id, data)
-                st.success("✅ Plan generated!")
-                st.balloons()
+        with st.expander("⚙️ Plan Options"):
+            st.warning("This will delete your current plan but keep all your progress history.")
+            if st.button("🔄 Generate New Plan", use_container_width=True):
+                archive_plan(user_id, plan, log)
+                delete_plan(user_id)
                 st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
+
+        st.divider()
+        st.subheader("💪 Today's Workout")
+
+        if today_session:
+            session_id = today_session["session_id"]
+            already_logged = log.get(session_id, {}).get("completed", False)
+
+            if already_logged:
+                prev = log[session_id]
+                st.success(f"✅ Already completed! Score: **{prev['score']}/100**")
+                if prev.get("notes"):
+                    st.caption(f"📝 {prev['notes']}")
+            else:
+                st.markdown(f"**{today_session['label']}** — *{today_session['week_focus']}*")
+                for ex in today_session["exercises"]:
+                    show_exercise(ex)
+
+                st.divider()
+                st.markdown("### 📝 Log This Session")
+
+                with st.form("session_log_form"):
+                    completed = st.checkbox("✅ I completed this workout!")
+                    exercise_names = [ex["name"].lower() for ex in today_session["exercises"]]
+                    has_squat = any("squat" in e for e in exercise_names)
+                    has_bench = any("bench" in e for e in exercise_names)
+                    has_deadlift = any("deadlift" in e or "rdl" in e for e in exercise_names)
+
+                    active_lifts = []
+                    if has_squat: active_lifts.append("squat")
+                    if has_bench: active_lifts.append("bench")
+                    if has_deadlift: active_lifts.append("deadlift")
+
+                    w_squat, w_bench, w_deadlift = 0, 0, 0
+                    if active_lifts:
+                        lift_cols = st.columns(len(active_lifts))
+                        for i, lift in enumerate(active_lifts):
+                            with lift_cols[i]:
+                                if lift == "squat":
+                                    w_squat = st.number_input("🦵 Squat (kg)", min_value=0)
+                                elif lift == "bench":
+                                    w_bench = st.number_input("💪 Bench (kg)", min_value=0)
+                                elif lift == "deadlift":
+                                    w_deadlift = st.number_input("⚡ Deadlift (kg)", min_value=0)
+
+                    rpe_felt = st.slider("😤 How hard did it feel? (RPE)", 1, 10, 7)
+                    notes = st.text_input("📝 Notes (optional)")
+                    log_submitted = st.form_submit_button("💾 Save Session", use_container_width=True)
+
+                if log_submitted:
+                    weights_entered = (w_squat + w_bench + w_deadlift) > 0
+                    score = calculate_score(completed, rpe_felt, weights_entered)
+                    entry = {
+                        "completed": completed,
+                        "squat": w_squat,
+                        "bench": w_bench,
+                        "deadlift": w_deadlift,
+                        "rpe": rpe_felt,
+                        "notes": notes,
+                        "score": score,
+                        "date": str(today)
+                    }
+                    save_log_entry(user_id, session_id, entry)
+                    st.success(f"🔥 Session logged! Score: **{score}/100**")
+                    st.rerun()
+        else:
+            st.info("🛌 Rest day today! Recovery is part of the program.")
+
+        st.divider()
+        st.subheader("📅 Full Schedule")
+        for s in all_sessions:
+            sid = s["session_id"]
+            s_log = log.get(sid, {})
+            is_completed = s_log.get("completed", False)
+            is_today = s["date"] == str(today)
+            score = s_log.get("score", 0)
+            icon = "👉" if is_today else ("✅" if is_completed else ("❌" if s["date"] < str(today) else "⬜"))
+            label = f"{icon} **Week {s['week']} — {s['label']}** ({s['date']})"
+            if is_completed:
+                label += f" — Score: {score}/100"
+            st.markdown(label)
+
+    # Full Program Tab
+    with tab2:
+        st.subheader("📋 Your Full 4-Week Program")
+        for week in plan["weeks"]:
+            st.subheader(f"Week {week['week']} — {week['focus']}")
+            cols = st.columns(len(week["days"]))
+            for i, day in enumerate(week["days"]):
+                with cols[i]:
+                    st.markdown(f"**{day['label']}**")
+                    for ex in day["exercises"]:
+                        st.markdown(f"> **{ex['name']}**  \n> {ex['sets']} × {ex['reps']} @ RPE {ex['rpe']}  \n> *{ex['note']}*")
+            st.divider()
+
+    # Diet Tab
+    with tab3:
+        diet = plan["diet"]
+        st.subheader("🍽️ Your Daily Indian Diet Plan")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("🔥 Calories", f"{diet['calories']} kcal")
+        m2.metric("🥩 Protein", f"{diet['protein']}g")
+        m3.metric("🍚 Carbs", f"{diet['carbs']}g")
+        m4.metric("🥑 Fats", f"{diet['fats']}g")
+        st.divider()
+        for meal in diet["meals"]:
+            with st.expander(f"🕐 {meal['time']} — {meal['name']}"):
+                st.write(f"**{meal['food']}**")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Protein", f"{meal['protein']}g")
+                c2.metric("Carbs", f"{meal['carbs']}g")
+                c3.metric("Fats", f"{meal['fats']}g")
+
+    # Tips Tab
+    with tab4:
+        st.subheader("💡 Coach's Tips")
+        for i, tip in enumerate(plan["tips"], 1):
+            st.info(f"💡 **Tip {i}:** {tip}")

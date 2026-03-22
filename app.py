@@ -50,9 +50,5 @@ if "user" in st.session_state and st.session_state["user"]:
     else:
         show_dashboard(user, plan_row, log)
 
-elif st.session_state.get("page") == "login":
-    show_login()
-
 else:
-    from ui.landing import show_landing
-    show_landing()
+    show_login()

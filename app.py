@@ -360,16 +360,24 @@ def load_plan(user_id):
 
 def save_plan(user_id, plan_data):
     try:
+        # Get current session token
+        session = supabase.auth.get_session()
+        if session:
+            supabase.postgrest.auth(session.access_token)
+        
         # Delete old plan first
         supabase.table("plans").delete().eq("user_id", user_id).execute()
+        
         # Save new plan
-        supabase.table("plans").insert({
+        result = supabase.table("plans").insert({
             "user_id": user_id,
             "plan_data": plan_data,
             "start_date": plan_data["start_date"]
         }).execute()
+        
+        return True
     except Exception as e:
-        st.error(f"Error saving plan: {e}")
+        raise Exception(f"Supabase save failed: {e}")
 
 def load_logs(user_id):
     try:
@@ -621,11 +629,17 @@ def show_app(user):
                         raw = raw.split("```")[1]
                         if raw.startswith("json"):
                             raw = raw[4:]
+                    raw = raw.strip()
                     data = json.loads(raw)
                     data["start_date"] = str(date.today())
                     data["training_days"] = days
-                    save_plan(user_id, data)
-                    st.success("✅ Plan generated! Refreshing...")
+                    supabase.table("plans").delete().eq("user_id", user_id).execute()
+                    supabase.table("plans").insert({
+                        "user_id": user_id,
+                        "plan_data": data,
+                        "start_date": data["start_date"]
+                    }).execute()
+                    st.success("✅ Plan generated!")
                     st.balloons()
                     st.rerun()
                 except Exception as e:

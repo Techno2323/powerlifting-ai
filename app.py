@@ -32,7 +32,6 @@ if "user" not in st.session_state:
 if "user" in st.session_state and st.session_state["user"]:
     user = st.session_state["user"]
 
-    # Top bar
     col1, col2 = st.columns([6, 1])
     with col1:
         st.title("🏋️ Indian Powerlifting AI Coach")
@@ -42,7 +41,6 @@ if "user" in st.session_state and st.session_state["user"]:
             from auth import sign_out
             sign_out()
 
-    # Load data
     plan_row = load_plan(user.id)
     log = load_logs(user.id)
 
@@ -51,5 +49,10 @@ if "user" in st.session_state and st.session_state["user"]:
         show_generate(user.id)
     else:
         show_dashboard(user, plan_row, log)
-else:
+
+elif st.session_state.get("page") == "login":
     show_login()
+
+else:
+    from ui.landing import show_landing
+    show_landing()

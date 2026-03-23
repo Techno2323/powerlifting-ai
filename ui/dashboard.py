@@ -16,7 +16,8 @@ GLOSSARY = {
 def show_exercise(ex):
     c1, c2 = st.columns([6, 1])
     with c1:
-        st.markdown(f"> **{ex['name']}** — {ex['sets']} sets × {ex['reps']} reps @ RPE {ex['rpe']}  \n> *{ex['note']}*")
+        weight_text = f" — **{ex['weight']}**" if ex.get('weight') else ""
+        st.markdown(f"> **{ex['name']}**{weight_text} — {ex['sets']} sets × {ex['reps']} reps @ RPE {ex['rpe']}  \n> *{ex['note']}*")
     with c2:
         relevant = [t for t in GLOSSARY if t in f"{ex['name']} {ex['note']} rpe sets reps".lower()]
         if relevant:

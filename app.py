@@ -20,13 +20,18 @@ st.set_page_config(
 load_css()
 
 # ---- Session Check ----
-if "user" not in st.session_state:
-    try:
-        user_data = get_user()
-        if user_data:
-            st.session_state["user"] = user_data.user
-    except:
-        pass
+# Always verify session with Supabase on every load
+try:
+    user_data = get_user()
+    if user_data and user_data.user:
+        st.session_state["user"] = user_data.user
+    else:
+        # Clear any stale session
+        if "user" in st.session_state:
+            del st.session_state["user"]
+except:
+    if "user" in st.session_state:
+        del st.session_state["user"]
 
 # ---- Router ----
 if "user" in st.session_state and st.session_state["user"]:

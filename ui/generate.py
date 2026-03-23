@@ -2,6 +2,7 @@ import streamlit as st
 import json
 from datetime import date
 import google.generativeai as genai
+from groq import Groq
 from database import save_plan, supabase
 
 def show_generate(user_id):

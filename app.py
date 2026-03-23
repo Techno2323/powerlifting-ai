@@ -21,19 +21,20 @@ st.set_page_config(
 load_css()
 
 # Always check fresh session on every load
-try:
-    session = supabase.auth.get_session()
-    if session and session.user:
-        st.session_state["user"] = session.user
-    else:
-        st.session_state.clear()
-except:
-    st.session_state.clear()
+# Session check
+if "user" not in st.session_state:
+    try:
+        user_data = get_user()
+        if user_data and user_data.user:
+            st.session_state["user"] = user_data.user
+        else:
+            st.session_state["user"] = None
+    except:
+        st.session_state["user"] = None
 
 # Router
-if "user" in st.session_state and st.session_state.get("user"):
+if st.session_state.get("user"):
     user = st.session_state["user"]
-
     col1, col2 = st.columns([6, 1])
     with col1:
         st.title("🏋️ Indian Powerlifting AI Coach")
@@ -42,15 +43,12 @@ if "user" in st.session_state and st.session_state.get("user"):
         if st.button("🚪 Logout"):
             from auth import sign_out
             sign_out()
-
     plan_row = load_plan(user.id)
     log = load_logs(user.id)
-
     if plan_row is None:
         st.info("👋 No active plan found. Generate your first plan below!")
         show_generate(user.id)
     else:
         show_dashboard(user, plan_row, log)
-
 else:
     show_login()

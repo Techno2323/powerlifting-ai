@@ -1,4 +1,5 @@
 import streamlit as st
+from database import supabase
 import google.generativeai as genai
 import supabase
 from auth import get_user
@@ -22,15 +23,20 @@ load_css()
 
 # Always check fresh session on every load
 # Session check
+# Force fresh session check every time
 if "user" not in st.session_state:
-    try:
-        user_data = get_user()
-        if user_data and user_data.user:
-            st.session_state["user"] = user_data.user
-        else:
-            st.session_state["user"] = None
-    except:
+    st.session_state["user"] = None
+
+try:
+    # Get session from Supabase
+    session = supabase.auth.get_session()
+    if session and session.session and session.session.user:
+        st.session_state["user"] = session.session.user
+    else:
         st.session_state["user"] = None
+        supabase.auth.sign_out()
+except:
+    st.session_state["user"] = None
 
 # Router
 if st.session_state.get("user"):

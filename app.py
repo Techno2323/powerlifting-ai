@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+import supabase
 from auth import get_user
 from ui.styles import load_css
 from ui.login import show_login
@@ -19,22 +20,18 @@ st.set_page_config(
 # ---- Load CSS globally ----
 load_css()
 
-# ---- Session Check ----
-# Always verify session with Supabase on every load
+# Always check fresh session on every load
 try:
-    user_data = get_user()
-    if user_data and user_data.user:
-        st.session_state["user"] = user_data.user
+    session = supabase.auth.get_session()
+    if session and session.user:
+        st.session_state["user"] = session.user
     else:
-        # Clear any stale session
-        if "user" in st.session_state:
-            del st.session_state["user"]
+        st.session_state.clear()
 except:
-    if "user" in st.session_state:
-        del st.session_state["user"]
+    st.session_state.clear()
 
-# ---- Router ----
-if "user" in st.session_state and st.session_state["user"]:
+# Router
+if "user" in st.session_state and st.session_state.get("user"):
     user = st.session_state["user"]
 
     col1, col2 = st.columns([6, 1])

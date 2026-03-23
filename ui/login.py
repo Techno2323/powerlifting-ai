@@ -15,6 +15,17 @@ def show_login():
     </div>
     """, unsafe_allow_html=True)
 
+    if st.button("Login", use_container_width=True):
+        if email and password:
+            res, err = sign_in(email, password)
+            if err:
+                st.error(f"Login failed: {err}")
+            else:
+                st.session_state["user"] = res.user
+                st.rerun()
+        else:
+            st.warning("Please enter email and password")
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         tab_login, tab_signup = st.tabs(["🔑 Login", "📝 Sign Up"])

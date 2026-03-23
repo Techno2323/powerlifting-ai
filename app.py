@@ -23,20 +23,16 @@ load_css()
 
 # Always check fresh session on every load
 # Session check
-# Force fresh session check every time
+# Only check session if user not already in state
 if "user" not in st.session_state:
     st.session_state["user"] = None
-
-try:
-    # Get session from Supabase
-    session = supabase.auth.get_session()
-    if session and session.session and session.session.user:
-        st.session_state["user"] = session.session.user
-    else:
+    try:
+        from database import supabase
+        session = supabase.auth.get_session()
+        if session and session.session:
+            st.session_state["user"] = session.session.user
+    except:
         st.session_state["user"] = None
-        supabase.auth.sign_out()
-except:
-    st.session_state["user"] = None
 
 # Router
 if st.session_state.get("user"):

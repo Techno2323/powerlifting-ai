@@ -20,15 +20,19 @@ st.set_page_config(
 # ---- Load CSS globally ----
 load_css()
 
-# ---- Restore session from Supabase token ----
-if "user" not in st.session_state:
+# ---- Restore session from stored JWT (per-browser, not shared) ----
+if "user" not in st.session_state and "_access_token" in st.session_state:
     try:
         user_data = get_user()
         if user_data:
             st.session_state["user"] = user_data.user
             st.session_state["page"] = "app"
+        else:
+            # Token invalid/expired — clear it
+            st.session_state.pop("_access_token", None)
     except:
-        pass
+        st.session_state.pop("_access_token", None)
+
 
 # ---- Default page state ----
 if "page" not in st.session_state:

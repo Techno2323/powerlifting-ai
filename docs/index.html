@@ -1,44 +1,966 @@
-<div class="barbell">
-    <div class="plate left-plate">45</div>
-    <div class="bar"></div>
-    <div class="plate right-plate">45</div>
-</div>
-<style>
-  .barbell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-  .bar {
-    width: 60%;
-    height: 20px;
-    background: #333;
-    border-radius: 10px;
-    position: relative;
-  }
-  .plate {
-    width: 30px;
-    height: 30px;
-    background: #f00;
-    border-radius: 50%;
-    position: absolute;
-    top: -5px;
-  }
-  .left-plate {
-    left: -35px;
-    animation: pulse 1s infinite;
-  }
-  .right-plate {
-    right: -35px;
-    animation: pulse 1s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.2);
-    }
-  }
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRONIQ - India's First AI Powerlifting Coach</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #000 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900"><rect fill="%23000"/><circle cx="20%" cy="30%" r="400" fill="%23FFD70008"/><circle cx="80%" cy="70%" r="350" fill="%231a1a1a"/></svg>');
+            background-size: cover;
+            color: #fff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── NAVIGATION ── */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #1a1a1a;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #FFD700;
+            letter-spacing: 3px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid #FFD70033;
+            color: #FFD700;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #FFD70010;
+            border-color: #FFD70066;
+        }
+
+        /* ── HERO SECTION ── */
+        .hero {
+            text-align: center;
+            padding: clamp(60px, 10vw, 120px) 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #FFD70012;
+            border: 1px solid #FFD70033;
+            border-radius: 50px;
+            padding: 8px 24px;
+            font-size: 0.75rem;
+            color: #FFD700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+            animation: slideDown 0.8s ease both;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .headline {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(3rem, 12vw, 7rem);
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 24px;
+            animation: slideUp 0.8s ease 0.2s both;
+        }
+
+        .gold-text {
+            background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 4s linear infinite;
+        }
+
+        @keyframes shimmer {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            line-height: 1.8;
+            max-width: 600px;
+            margin: 0 auto 48px;
+            animation: slideUp 0.8s ease 0.4s both;
+        }
+
+        /* ── ANIMATED BARBELL ── */
+        .barbell-container {
+            margin: 48px auto;
+            animation: slideUp 0.8s ease 0.6s both;
+        }
+
+        .barbell {
+            width: clamp(200px, 60vw, 400px);
+            height: 120px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .plate {
+            position: absolute;
+            background: linear-gradient(135deg, #FFD700, #B8860B);
+            border-radius: 4px;
+            box-shadow: 0 0 15px #FFD70055;
+            animation: plateBounce 2.5s ease-in-out infinite;
+        }
+
+        .plate.left-lg {
+            width: 20px;
+            height: 60px;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .plate.left-md {
+            width: 14px;
+            height: 50px;
+            left: 22%;
+            animation-delay: 0.15s;
+        }
+
+        .plate.left-sm {
+            width: 10px;
+            height: 40px;
+            left: 34%;
+            animation-delay: 0.3s;
+        }
+
+        .plate.right-sm {
+            width: 10px;
+            height: 40px;
+            right: 34%;
+            animation-delay: 0.3s;
+        }
+
+        .plate.right-md {
+            width: 14px;
+            height: 50px;
+            right: 22%;
+            animation-delay: 0.15s;
+        }
+
+        .plate.right-lg {
+            width: 20px;
+            height: 60px;
+            right: 10%;
+            animation-delay: 0s;
+        }
+
+        @keyframes plateBounce {
+            0%, 100% {
+                transform: translateY(0) scaleY(1);
+                box-shadow: 0 0 8px #FFD70033;
+            }
+            25% {
+                transform: translateY(-8px) scaleY(0.98);
+            }
+            50% {
+                transform: translateY(0) scaleY(1);
+                box-shadow: 0 0 25px #FFD700aa;
+            }
+            75% {
+                transform: translateY(-4px) scaleY(0.99);
+            }
+        }
+
+        .collar {
+            position: absolute;
+            width: 12px;
+            height: 30px;
+            background: #999;
+            border-radius: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .collar.left {
+            left: 44%;
+        }
+
+        .collar.right {
+            right: 44%;
+        }
+
+        .bar {
+            position: absolute;
+            width: 50%;
+            height: 14px;
+            background: linear-gradient(90deg, #666, #ddd, #666);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: barLift 2.5s ease-in-out infinite;
+        }
+
+        @keyframes barLift {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            25% {
+                transform: translateY(-6px);
+            }
+            50% {
+                transform: translateY(0);
+            }
+            75% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* ── CTA BUTTONS ── */
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px;
+            animation: slideUp 0.8s ease 0.8s both;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 40px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            box-shadow: 0 8px 24px #FFD70044;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px #FFD70066;
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #FFD700;
+            border: 2px solid #FFD700;
+        }
+
+        .btn-secondary:hover {
+            background: #FFD70010;
+            border-color: #FFD700;
+        }
+
+        /* ── MARQUEE ── */
+        .marquee-section {
+            overflow: hidden;
+            border-top: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+            padding: 20px 0;
+            margin: 60px 0;
+            background: #05050566;
+            animation: slideUp 0.8s ease 1s both;
+        }
+
+        .marquee {
+            display: flex;
+            gap: 40px;
+            animation: scroll 40s linear infinite;
+            white-space: nowrap;
+        }
+
+        .marquee:hover {
+            animation-play-state: paused;
+        }
+
+        .marquee-item {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .marquee-item.gold {
+            color: #FFD70055;
+        }
+
+        @keyframes scroll {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* ── STATS ── */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin: 80px auto;
+            max-width: 1000px;
+            padding: 60px 40px;
+            border-top: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+            animation: slideUp 0.8s ease 0.8s both;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            color: #FFD700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* ── FEATURES ── */
+        .features {
+            max-width: 1200px;
+            margin: 100px auto;
+            padding: 0 40px;
+        }
+
+        .section-tag {
+            text-align: center;
+            color: #FFD700;
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideUp 0.8s ease both;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+            border: 1px solid #1a1a1a;
+            border-radius: 16px;
+            padding: 40px 32px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #FFD700, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: #FFD70033;
+            box-shadow: 0 20px 48px rgba(255, 215, 0, 0.1);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .feature-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .feature-desc {
+            color: #888;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        /* ── HOW IT WORKS ── */
+        .how-it-works {
+            max-width: 1200px;
+            margin: 100px auto;
+            padding: 0 40px;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .step {
+            text-align: center;
+            padding: 40px 24px;
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-6px);
+            border-color: #FFD70033;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #000;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px #FFD70044;
+        }
+
+        .step-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .step-desc {
+            color: #888;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        /* ── FINAL CTA ── */
+        .final-cta {
+            max-width: 900px;
+            margin: 120px auto 60px;
+            padding: 80px 40px;
+            background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+            border: 1px solid #FFD70015;
+            border-radius: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .final-cta::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(ellipse, #FFD70015, transparent 70%);
+            animation: glow 6s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.15);
+            }
+        }
+
+        .cta-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .cta-subtitle {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        /* ── MODAL ── */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid #FFD70033;
+            text-align: center;
+            max-width: 500px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #FFA500;
+        }
+
+        .modal h2 {
+            margin: 20px 0;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .modal p {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid #0f0f0f;
+            color: #444;
+            font-size: 0.85rem;
+        }
+
+        footer span {
+            color: #FFD70033;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            nav {
+                padding: 16px 20px;
+            }
+
+            .hero {
+                padding: 40px 20px;
+            }
+
+            .headline {
+                font-size: clamp(2rem, 10vw, 4rem);
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">🏋️ IRONIQ</div>
+        <button class="nav-btn" id="navLogin">Login →</button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="badge">🇮🇳 Built for Indian Athletes</div>
+        <h1 class="headline">FORGE YOUR <span class="gold-text">STRENGTH</span></h1>
+        <p class="subtitle">
+            India's first AI powerlifting coach. Personalized 4-week programs,
+            Indian diet plans, and real progress tracking.
+        </p>
+
+        <!-- Animated Barbell -->
+        <div class="barbell-container">
+            <div class="barbell">
+                <div class="plate left-lg"></div>
+                <div class="plate left-md"></div>
+                <div class="plate left-sm"></div>
+                <div class="collar left"></div>
+                <div class="bar"></div>
+                <div class="collar right"></div>
+                <div class="plate right-sm"></div>
+                <div class="plate right-md"></div>
+                <div class="plate right-lg"></div>
+            </div>
+        </div>
+
+        <div class="cta-buttons">
+            <button class="btn btn-primary" id="heroGetStarted">🚀 Get Started Free</button>
+            <button class="btn btn-secondary" id="learnMore">Learn More</button>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <section class="marquee-section">
+        <div class="marquee">
+            <span class="marquee-item gold">🏋️</span>
+            <span class="marquee-item">SQUAT</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">BENCH PRESS</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">DEADLIFT</span>
+            <span class="marquee-item gold">⚡</span>
+            <span class="marquee-item">POWERED BY AI</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">INDIAN DIET PLANS</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">4 WEEK PROGRAM</span>
+            <span class="marquee-item gold">🇮🇳</span>
+            <span class="marquee-item">BUILT FOR INDIA</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">DAILY SCORE SYSTEM</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">FORGE YOUR STRENGTH</span>
+
+            <!-- Duplicate for continuous scroll -->
+            <span class="marquee-item gold">🏋️</span>
+            <span class="marquee-item">SQUAT</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">BENCH PRESS</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">DEADLIFT</span>
+            <span class="marquee-item gold">⚡</span>
+            <span class="marquee-item">POWERED BY AI</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">INDIAN DIET PLANS</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">4 WEEK PROGRAM</span>
+            <span class="marquee-item gold">🇮🇳</span>
+            <span class="marquee-item">BUILT FOR INDIA</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">DAILY SCORE SYSTEM</span>
+            <span class="marquee-item gold">·</span>
+            <span class="marquee-item">FORGE YOUR STRENGTH</span>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stat">
+            <div class="stat-number">4</div>
+            <div class="stat-label">Week Program</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">🤖</div>
+            <div class="stat-label">AI Personalized</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Big Lifts Tracked</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">🍛</div>
+            <div class="stat-label">Indian Diet</div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="section-tag">What You Get</div>
+        <h2 class="section-title">Everything You Need To Get Strong</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h3 class="feature-title">AI Program Builder</h3>
+                <p class="feature-desc">Enter your current maxes and get a fully personalized 4-week powerlifting program built specifically for your level and goals.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🍛</span>
+                <h3 class="feature-title">Indian Diet Plan</h3>
+                <p class="feature-desc">No more chicken and broccoli. Get macro-optimized meal plans using dal, paneer, roti, rice — foods you actually eat.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3 class="feature-title">Progress Tracking</h3>
+                <p class="feature-desc">Log every session, track your lifts over time, and watch your squat, bench and deadlift numbers climb week by week.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🏆</span>
+                <h3 class="feature-title">Daily Score System</h3>
+                <p class="feature-desc">Earn points for every workout. The more consistent you are, the higher your score. Gamified fitness that keeps you coming back.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">💡</span>
+                <h3 class="feature-title">Beginner Friendly</h3>
+                <p class="feature-desc">Never heard of RPE or RDL? Every exercise comes with plain English explanations so you always know exactly what to do.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔄</span>
+                <h3 class="feature-title">Endless Programs</h3>
+                <p class="feature-desc">Finish your 4 weeks? Generate a new program instantly. Your history is always saved so you can track long term progress.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="section-tag">How It Works</div>
+        <h2 class="section-title">Three Steps to Your Program</h2>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Enter Your Maxes</h3>
+                <p class="step-desc">Tell us your current squat, bench, and deadlift 1-rep maxes, your bodyweight, age, and training goal.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3 class="step-title">AI Builds Your Plan</h3>
+                <p class="step-desc">Gemini AI generates a complete 4-week program with exact weights, sets, reps and a full Indian diet plan in seconds.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Train & Track</h3>
+                <p class="step-desc">Log each session, earn score points, and watch your lifts climb week over week. Generate new programs forever.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <h2 class="cta-title">Ready to Forge Your Strength?</h2>
+        <p class="cta-subtitle">Zero cost. No credit card. Just lift.</p>
+        <button class="btn btn-primary" id="finalCTA" style="position: relative; margin-top: 20px;">🚀 Start For Free</button>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>Built with ❤️ for Indian powerlifters &nbsp;·&nbsp; <span>IRONIQ</span> © 2026</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="getStartedModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('getStartedModal')">&times;</span>
+            <h2>🚀 Get Started Free</h2>
+            <p>Ready to begin your powerlifting journey?</p>
+            <button class="btn btn-primary" onclick="redirect('https://your-app-url.com/signup')">Sign Up Now</button>
+            <br><br>
+            <p style="font-size: 0.85rem; color: #666;">Or redirect to your Streamlit app URL</p>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">&times;</span>
+            <h2>🔐 Login</h2>
+            <p>Welcome back, powerlifter!</p>
+            <button class="btn btn-primary" onclick="redirect('https://your-app-url.com/login')">Login to Account</button>
+            <br><br>
+            <p style="font-size: 0.85rem; color: #666;">Or redirect to your Streamlit app URL</p>
+        </div>
+    </div>
+
+    <div id="learnMoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('learnMoreModal')">&times;</span>
+            <h2>📚 Learn More</h2>
+            <p><strong>IRONIQ Features:</strong></p>
+            <ul style="text-align: left; color: #888;">
+                <li>✅ AI-powered personalized programs</li>
+                <li>✅ Indian diet plans</li>
+                <li>✅ Real-time progress tracking</li>
+                <li>✅ Daily scoring system</li>
+                <li>✅ Beginner-friendly guidance</li>
+            </ul>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="redirect('https://your-app-url.com')">Get Started</button>
+        </div>
+    </div>
+
+    <script>
+        // Button click handlers
+        document.getElementById('navLogin').addEventListener('click', function() {
+            openModal('loginModal');
+        });
+
+        document.getElementById('heroGetStarted').addEventListener('click', function() {
+            openModal('getStartedModal');
+        });
+
+        document.getElementById('learnMore').addEventListener('click', function() {
+            openModal('learnMoreModal');
+        });
+
+        document.getElementById('finalCTA').addEventListener('click', function() {
+            openModal('getStartedModal');
+        });
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        });
+
+        // Redirect function
+        function redirect(url) {
+            // Replace with your actual Streamlit app URL
+            window.location.href = 'https://powerlifting-ai.streamlit.app/';
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

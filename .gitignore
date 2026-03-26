@@ -2,3 +2,5 @@ saved_plan.json
 workout_log.json
 workout_history.json
 .streamlit/secrets.toml
+__pycache__/
+*.pyc

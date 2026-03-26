@@ -81,6 +81,37 @@ def show_landing():
         gap: 0; margin: 32px auto 0; opacity: 0.12;
         animation: fadeUp 0.8s ease 0.6s both;
     }
+    .lp-barbell-svg {
+    display: block;
+    margin: 32px auto 0;
+    opacity: 0.15;
+    animation: fadeUp 0.8s ease 0.6s both;
+    max-width: 400px;
+    }
+
+    .lp-plate-svg {
+        fill: url(#goldGradient);
+        filter: drop-shadow(0 0 10px #FFD70044);
+        animation: platePulseSvg 3s ease-in-out infinite;
+    }
+
+    .lp-plate-svg.xs { animation-delay: 0.8s; }
+    .lp-plate-svg.sm { animation-delay: 0.4s; }
+    .lp-plate-svg.lg { animation-delay: 0s; }
+
+    .lp-bar-svg {
+        fill: url(#barGradient);
+    }
+
+    .lp-collar-svg {
+        fill: #888;
+        rx: 2;
+    }
+
+    @keyframes platePulseSvg {
+        0%, 100% { filter: drop-shadow(0 0 8px #FFD70033); }
+        50% { filter: drop-shadow(0 0 22px #FFD70099); transform: scaleY(1.04); }
+    }
     .lp-plate {
         width: 22px; height: 60px;
         background: linear-gradient(135deg, #FFD700, #B8860B);
@@ -257,7 +288,6 @@ def show_landing():
             st.session_state["page"] = "login"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-
     # ── HERO ──
     st.markdown("""
     <div class="lp-hero">
@@ -270,19 +300,38 @@ def show_landing():
             India's first AI powerlifting coach. Personalized 4-week programs,
             Indian diet plans, and real progress tracking.
         </span>
+    </div>
+    """, unsafe_allow_html=True)
 
-        <!-- Animated CSS Barbell -->
-        <div class="lp-barbell-wrap">
-            <div class="lp-plate xs"></div>
-            <div class="lp-plate sm"></div>
-            <div class="lp-plate"></div>
-            <div class="lp-collar"></div>
-            <div class="lp-bar"></div>
-            <div class="lp-collar"></div>
-            <div class="lp-plate"></div>
-            <div class="lp-plate sm"></div>
-            <div class="lp-plate xs"></div>
-        </div>
+    # Add SVG separately with its own markdown call
+    st.markdown("""
+    <svg width="0" height="0" style="display:none;">
+        <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#B8860B;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="barGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#888;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#ccc;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#888;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <div style="text-align: center; margin: 32px auto 0;">
+        <svg class="lp-barbell-svg" viewBox="0 0 300 100" width="280" height="90" style="display: block; margin: 0 auto;">
+            <rect class="lp-plate-svg xs" x="10" y="20" width="10" height="60"/>
+            <rect class="lp-plate-svg sm" x="25" y="27" width="14" height="46"/>
+            <rect class="lp-plate-svg lg" x="44" y="20" width="22" height="60"/>
+            <rect class="lp-collar-svg" x="72" y="35" width="10" height="30"/>
+            <rect class="lp-bar-svg" x="86" y="42" width="128" height="16" rx="8"/>
+            <rect class="lp-collar-svg" x="218" y="35" width="10" height="30"/>
+            <rect class="lp-plate-svg lg" x="234" y="20" width="22" height="60"/>
+            <rect class="lp-plate-svg sm" x="261" y="27" width="14" height="46"/>
+            <rect class="lp-plate-svg xs" x="280" y="20" width="10" height="60"/>
+        </svg>
     </div>
     """, unsafe_allow_html=True)
 

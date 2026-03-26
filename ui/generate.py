@@ -5,41 +5,50 @@ import google.generativeai as genai
 from database import save_plan
 
 def show_generate(user_id):
-    st.markdown("""<div style="background:linear-gradient(135deg,#1a1a1a,#111);border:1px solid #FFD70033;border-radius:20px;padding:35px 40px;margin:20px 0;box-shadow:0 0 40px #FFD70011;">
-    <h2 style="text-align:center;color:#FFD700;font-family:Rajdhani,sans-serif;">⚡ BUILD YOUR PROGRAM</h2>
-    <p style="text-align:center;color:#888;font-size:0.9rem;text-transform:uppercase;letter-spacing:2px;">Enter your current maxes to get started</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:20px;">
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">🦵</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">SQUAT</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">💪</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">BENCH</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    <div style="background:#0d0d0d;border:1px solid #FFD70033;border-radius:16px;padding:25px;text-align:center;">
-    <div style="font-size:2.5rem;">⚡</div><div style="color:#FFD700;font-weight:700;letter-spacing:2px;">DEADLIFT</div>
-    <div style="color:#555;font-size:0.75rem;">Enter below</div></div>
-    </div></div>""", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="gen-header">
+        <h2 class="gen-title">⚡ BUILD YOUR PROGRAM</h2>
+        <p class="gen-subtitle">Enter your current maxes to get started</p>
+        <div class="gen-cards">
+            <div class="gen-card">
+                <span class="gen-card-icon">🦵</span>
+                <div class="gen-card-name">SQUAT</div>
+                <div class="gen-card-sub">Enter below</div>
+            </div>
+            <div class="gen-card">
+                <span class="gen-card-icon">💪</span>
+                <div class="gen-card-name">BENCH</div>
+                <div class="gen-card-sub">Enter below</div>
+            </div>
+            <div class="gen-card">
+                <span class="gen-card-icon">⚡</span>
+                <div class="gen-card-name">DEADLIFT</div>
+                <div class="gen-card-sub">Enter below</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     with st.form("user_form"):
-        # Row 1 - Lifts
+        # Row 1 — Main lifts
         col1, col2, col3 = st.columns(3)
         with col1:
-            squat = st.number_input("🦵 Squat Max (kg)", min_value=0)
+            squat     = st.number_input("🦵 Squat Max (kg)",    min_value=0)
         with col2:
-            bench = st.number_input("💪 Bench Max (kg)", min_value=0)
+            bench     = st.number_input("💪 Bench Max (kg)",    min_value=0)
         with col3:
-            deadlift = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
+            deadlift  = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
 
-        # Row 2 - Body stats
+        # Row 2 — Body stats
         col4, col5, col6 = st.columns(3)
         with col4:
             bodyweight = st.number_input("⚖️ Bodyweight (kg)", min_value=0)
         with col5:
-            age = st.number_input("🎂 Age", min_value=10, max_value=60)
+            age        = st.number_input("🎂 Age", min_value=10, max_value=80)
         with col6:
-            food = st.selectbox("🍽️ Diet Type", ["Vegetarian", "Non-Vegetarian", "Eggetarian"])
+            food       = st.selectbox("🍽️ Diet Type", ["Vegetarian", "Non-Vegetarian", "Eggetarian"])
 
-        # Row 3 - Program settings
+        # Row 3 — Program settings
         col7, col8 = st.columns(2)
         with col7:
             goal = st.selectbox("🎯 Your Goal", ["Build Strength", "Bulk", "Cut"])
@@ -113,38 +122,6 @@ def show_generate(user_id):
                                     "weight": "specific kg based on their 1RM",
                                     "rpe": "7",
                                     "note": "specific coaching cue for this athlete"
-                                }},
-                                {{
-                                    "name": "Romanian Deadlift",
-                                    "sets": 3,
-                                    "reps": "8",
-                                    "weight": "specific kg",
-                                    "rpe": "6",
-                                    "note": "hinge at hips, feel hamstring stretch"
-                                }},
-                                {{
-                                    "name": "Leg Press",
-                                    "sets": 3,
-                                    "reps": "10",
-                                    "weight": "specific kg",
-                                    "rpe": "6",
-                                    "note": "full range of motion"
-                                }},
-                                {{
-                                    "name": "Face Pulls",
-                                    "sets": 3,
-                                    "reps": "15",
-                                    "weight": "20kg",
-                                    "rpe": "5",
-                                    "note": "shoulder health, external rotation"
-                                }},
-                                {{
-                                    "name": "Plank",
-                                    "sets": 3,
-                                    "reps": "45 seconds",
-                                    "weight": "bodyweight",
-                                    "rpe": "5",
-                                    "note": "brace core, maintain neutral spine"
                                 }}
                             ]
                         }}
@@ -190,14 +167,14 @@ def show_generate(user_id):
                         raw = raw[4:]
                 raw = raw.strip()
                 data = json.loads(raw)
-                data["start_date"] = str(date.today())
+                data["start_date"]    = str(date.today())
                 data["training_days"] = days
                 save_plan(user_id, data)
                 st.success("✅ Plan generated!")
                 st.balloons()
                 st.rerun()
             except json.JSONDecodeError as e:
-                st.error(f"❌ Failed to parse plan. Please try again.")
+                st.error("❌ Failed to parse plan. Please try again.")
                 st.code(str(e))
             except Exception as e:
                 st.error(f"❌ Error: {e}")

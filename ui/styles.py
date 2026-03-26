@@ -227,17 +227,33 @@ def load_css():
     }
 
     /* ── PROGRESS BARS ── */
-    .stProgress > div {
+    /* Outer wrapper: let it size naturally so the text label has room */
+    .stProgress {
+        margin-bottom: 4px !important;
+    }
+    /* The track element sits inside the outer div, before the text label */
+    .stProgress > div > div:first-child {
         background: #1a1a1a !important;
         border-radius: 20px !important;
         height: 8px !important;
+        overflow: hidden !important;
     }
-    .stProgress > div > div > div {
+    /* The fill bar inside the track */
+    .stProgress > div > div:first-child > div {
         background: linear-gradient(90deg, #B8860B, #FFD700, #FFA500, #FFD700) !important;
         background-size: 300% 100% !important;
         border-radius: 20px !important;
+        height: 8px !important;
         animation: barShimmer 2.5s linear infinite, barGlow 2s ease-in-out infinite !important;
         box-shadow: 0 0 10px #FFD70055 !important;
+    }
+    /* Progress text label */
+    .stProgress > div > p,
+    .stProgress p {
+        color: #555 !important;
+        font-size: 0.78rem !important;
+        margin-top: 5px !important;
+        margin-bottom: 0 !important;
     }
     @keyframes barShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
     @keyframes barGlow { 0%,100% { box-shadow: 0 0 8px #FFD70055; } 50% { box-shadow: 0 0 18px #FFD700aa; } }

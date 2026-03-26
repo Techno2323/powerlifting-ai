@@ -22,6 +22,9 @@ def sign_out():
 
 def get_user():
     try:
-        return supabase.auth.get_user()
+        res = supabase.auth.get_user()
+        if res and res.user:
+            return res
+        return None
     except:
         return None

@@ -101,7 +101,7 @@ def show_dashboard(user, plan_row, log):
                 st.divider()
                 st.markdown("### 📝 Log This Session")
 
-                with st.form("session_log_form"):
+                with st.form(f"log_{today.strftime('%Y%m%d')}"):
                     completed = st.checkbox("✅ I completed this workout!")
                     exercise_names = [ex["name"].lower() for ex in today_session["exercises"]]
                     has_squat = any("squat" in e for e in exercise_names)

@@ -1,8 +1,9 @@
 import streamlit as st
 
 def load_css():
-    # ---- Inject floating background gym elements ----
+    # ---- Inject viewport meta + floating background gym elements ----
     st.markdown("""
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <div class="bg-gym-layer" aria-hidden="true">
         <span class="gym-float" style="left:5%;animation-delay:0s;animation-duration:20s;font-size:2.2rem">🏋️</span>
         <span class="gym-float" style="left:22%;animation-delay:-7s;animation-duration:25s;font-size:1.8rem">🏋️</span>
@@ -33,6 +34,30 @@ def load_css():
     }
     .stApp { background: #080808; min-height: 100vh; }
     #MainMenu, footer, header { visibility: hidden; }
+
+    /* ── HIDDEN BUTTON SYSTEM ──
+       Marker divs (class="st-hb") are injected before each hidden Streamlit button.
+       :has() selects the div that CONTAINS the marker, then + div targets the
+       immediate next sibling which is the actual Streamlit button container. */
+    .st-hb { display: none !important; }
+    div:has(.st-hb) + div {
+        position: absolute !important;
+        width: 1px !important; height: 1px !important;
+        overflow: hidden !important; opacity: 0 !important;
+        pointer-events: none !important; clip: rect(0,0,0,0) !important;
+        margin: 0 !important; padding: 0 !important;
+    }
+
+    /* ── HIDE COLUMN RESIZE HANDLES (those | bars) ── */
+    [data-testid="stHorizontalBlock"] > div:not([data-testid="column"]) {
+        display: none !important;
+    }
+
+    /* Remove 300ms tap delay on all interactive elements */
+    a, button, input, select, textarea,
+    [role="button"], [tabindex] {
+        touch-action: manipulation;
+    }
 
     /* ── BACKGROUND GYM LAYER ── */
     .bg-gym-layer {
@@ -105,6 +130,8 @@ def load_css():
         box-shadow: 0 4px 20px #FFD70033 !important;
         position: relative !important;
         overflow: hidden !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
     .stButton > button::before {
         content: '';
@@ -131,9 +158,10 @@ def load_css():
         border-radius: 10px !important;
         color: #e0e0e0 !important;
         padding: 14px 16px !important;
-        font-size: 1rem !important;
+        font-size: 16px !important; /* prevents iOS zoom-on-focus */
         min-height: 48px !important;
         transition: border-color 0.25s, box-shadow 0.25s !important;
+        touch-action: manipulation !important;
     }
     .stTextInput input:focus {
         border-color: #FFD700 !important;
@@ -150,10 +178,17 @@ def load_css():
         text-align: center !important;
         min-height: 52px !important;
         transition: border-color 0.25s, box-shadow 0.25s !important;
+        touch-action: manipulation !important;
     }
     [data-testid="stNumberInput"] input:focus {
         border-color: #FFD700 !important;
         box-shadow: 0 0 0 3px #FFD70022 !important;
+    }
+    /* Number input step buttons — bigger tap area */
+    [data-testid="stNumberInput"] button {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        touch-action: manipulation !important;
     }
     [data-testid="stSelectbox"] > div > div {
         background: #111 !important;
@@ -161,6 +196,7 @@ def load_css():
         border-radius: 10px !important;
         color: #e0e0e0 !important;
         min-height: 48px !important;
+        font-size: 16px !important; /* prevents iOS zoom */
     }
     [data-testid="stSelectbox"] > div > div:hover { border-color: #FFD70044 !important; }
 
@@ -173,6 +209,7 @@ def load_css():
         gap: 4px !important;
         overflow-x: auto !important;
         scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
     }
     .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none; }
     .stTabs [data-baseweb="tab"] {
@@ -185,6 +222,8 @@ def load_css():
         white-space: nowrap !important;
         min-height: 44px !important;
         transition: color 0.2s !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
     .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #FFD700, #FFA500) !important;
@@ -227,7 +266,6 @@ def load_css():
     }
 
     /* ── PROGRESS BARS ── */
-    /* Target bar by role attribute — actual Streamlit HTML */
     [role="progressbar"] {
         background: #1a1a1a !important;
         border-radius: 20px !important;
@@ -235,7 +273,6 @@ def load_css():
         overflow: hidden !important;
         border: none !important;
     }
-    /* Fill inside the progressbar */
     [role="progressbar"] > div {
         background: linear-gradient(90deg, #B8860B, #FFD700, #FFA500, #FFD700) !important;
         background-size: 300% 100% !important;
@@ -245,7 +282,6 @@ def load_css():
         box-shadow: 0 0 10px #FFD70055 !important;
         border: none !important;
     }
-    /* Text label below the bar */
     .stProgress p,
     .stProgress > div > p,
     .stProgress small {
@@ -298,6 +334,35 @@ def load_css():
     .ex-meta { color: #555; font-size: 0.8rem; margin-top: 5px; letter-spacing: 0.3px; }
     .ex-note { color: #777; font-size: 0.8rem; font-style: italic; margin-top: 5px; line-height: 1.5; }
 
+    /* ── SCHEDULE ITEMS ── */
+    .schedule-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        background: #0e0e0e;
+        border: 1px solid #181818;
+        transition: background 0.2s, border-color 0.2s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .schedule-item:hover { background: #121212; border-color: #222; }
+    .schedule-item.today {
+        border-color: #FFD70044 !important;
+        background: #FFD70008 !important;
+        box-shadow: 0 0 0 1px #FFD70022;
+    }
+    .schedule-item.completed {
+        border-color: #22c55e22 !important;
+        background: #09120900 !important;
+        opacity: 0.85;
+    }
+    .schedule-item.missed {
+        border-color: #ef444422 !important;
+        opacity: 0.6;
+    }
+
     /* ── BLOCKQUOTE FALLBACK ── */
     blockquote {
         background: #111 !important;
@@ -330,7 +395,11 @@ def load_css():
     [data-testid="stExpander"] summary {
         color: #FFD700 !important;
         font-weight: 600 !important;
-        min-height: 48px !important;
+        min-height: 52px !important; /* larger touch target */
+        display: flex !important;
+        align-items: center !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
 
     /* ── SLIDER ── */
@@ -338,8 +407,13 @@ def load_css():
         background: #FFD700 !important;
         border: 3px solid #000 !important;
         box-shadow: 0 0 10px #FFD70066 !important;
-        width: 22px !important;
-        height: 22px !important;
+        width: 28px !important;
+        height: 28px !important;
+        touch-action: none !important; /* let slider handle its own drag */
+    }
+    /* Slider track — thicker on mobile */
+    .stSlider [data-baseweb="slider"] [role="progressbar"] {
+        height: 6px !important;
     }
 
     /* ── ALERTS ── */
@@ -418,7 +492,7 @@ def load_css():
         background: linear-gradient(135deg, #111, #0d0d0d);
         border: 1px solid #FFD70020;
         border-radius: 20px;
-        padding: clamp(24px, 5vw, 40px);
+        padding: clamp(20px, 5vw, 40px);
         margin-bottom: 20px;
         text-align: center;
         box-shadow: 0 0 40px #FFD70008;
@@ -427,7 +501,7 @@ def load_css():
     .gen-title {
         color: #FFD700;
         font-family: 'Rajdhani', sans-serif;
-        font-size: clamp(1.4rem, 4vw, 2rem);
+        font-size: clamp(1.2rem, 4vw, 2rem);
         font-weight: 700;
         letter-spacing: 3px;
         margin: 0;
@@ -476,28 +550,49 @@ def load_css():
        MOBILE — max 640px
     ══════════════════════════ */
     @media (max-width: 640px) {
-        /* Stack all Streamlit columns */
-        [data-testid="stHorizontalBlock"] {
-            flex-direction: column !important;
-            gap: 8px !important;
+        /* Safe area insets for notched phones */
+        .block-container {
+            padding: 1rem 1rem 2rem !important;
+            padding-left: max(1rem, env(safe-area-inset-left)) !important;
+            padding-right: max(1rem, env(safe-area-inset-right)) !important;
+            padding-bottom: max(2rem, env(safe-area-inset-bottom)) !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
         }
-        [data-testid="column"] {
+
+        /* Hide Streamlit column resize handles */
+        [data-testid="column"] > div:first-child::after { display: none !important; }
+
+        /* Stack Streamlit columns — ONLY for multi-column rows in forms/dashboards.
+           NOT applied globally so it doesn't break single-col layouts */
+        [data-testid="stForm"] [data-testid="stHorizontalBlock"],
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+        [data-testid="stForm"] [data-testid="column"],
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] {
             width: 100% !important;
             flex: 1 1 100% !important;
             min-width: 100% !important;
         }
 
-        /* Block container padding */
-        .block-container { padding: 1rem 0.75rem !important; }
-
         /* Tabs scroll */
         .stTabs [data-baseweb="tab-list"] { justify-content: flex-start !important; }
-        .stTabs [data-baseweb="tab"] { font-size: 0.8rem !important; padding: 8px 12px !important; }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.78rem !important;
+            padding: 10px 12px !important;
+            min-height: 44px !important;
+        }
 
-        /* Buttons */
-        .stButton > button {
+        /* Buttons — full width ONLY inside forms and tab panels, NOT globally */
+        [data-testid="stForm"] .stButton > button,
+        [data-testid="stFormSubmitButton"] button,
+        [data-baseweb="tab-panel"] .stButton > button {
             width: 100% !important;
-            padding: 14px !important;
+            padding: 16px !important;
+            font-size: 1rem !important;
+            min-height: 52px !important;
         }
 
         /* Number inputs */
@@ -520,11 +615,50 @@ def load_css():
         .hero-stat .number { font-size: 1.3rem !important; }
 
         /* Reduce floating elements on mobile (performance) */
-        .gym-float:nth-child(n+4) { display: none; }
+        .gym-float { will-change: auto !important; animation: none !important; opacity: 0 !important; }
 
         /* Exercise cards */
         .ex-name { font-size: 0.95rem !important; }
-        .ex-card { padding: 12px 14px !important; }
+        .ex-card { padding: 12px 14px !important; margin-bottom: 8px !important; }
+        .ex-card:hover { transform: none !important; }
+
+        /* Schedule items */
+        .schedule-item { padding: 10px 12px !important; gap: 8px !important; }
+
+        /* Metrics */
+        [data-testid="metric-container"] { padding: 14px 10px !important; }
+        [data-testid="metric-container"] [data-testid="stMetricValue"] { font-size: 1.4rem !important; }
+
+        /* Form inner padding */
+        [data-testid="stForm"] { padding: 14px !important; border-radius: 14px !important; }
+
+        /* Expander */
+        [data-testid="stExpander"] summary { min-height: 56px !important; padding: 0 14px !important; }
+
+        /* Slider thumb */
+        .stSlider [data-baseweb="slider"] div[role="slider"] {
+            width: 32px !important;
+            height: 32px !important;
+        }
+
+        /* Gen header */
+        .gen-header { padding: 16px !important; }
+        .gen-title { letter-spacing: 1.5px !important; }
+    }
+
+    /* ══════════════════════════
+       ULTRA-SMALL — max 390px
+    ══════════════════════════ */
+    @media (max-width: 390px) {
+        .block-container { padding: 0.75rem !important; }
+        h1 { font-size: 1.5rem !important; }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.72rem !important;
+            padding: 8px 10px !important;
+        }
+        .ex-card { padding: 10px 12px !important; }
+        [data-testid="metric-container"] { padding: 12px 8px !important; }
+        [data-testid="metric-container"] [data-testid="stMetricValue"] { font-size: 1.2rem !important; }
     }
 
     /* ══════════════════════════

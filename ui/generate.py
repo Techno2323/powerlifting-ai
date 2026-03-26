@@ -5,6 +5,24 @@ import google.generativeai as genai
 from database import save_plan
 
 def show_generate(user_id):
+    # Local mobile overrides for the generate page form
+    st.markdown("""
+    <style>
+    @media (max-width: 640px) {
+        /* gen-cards already switches to 1-col via global CSS;
+           also tighten form column gap on mobile */
+        [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+            gap: 6px !important;
+        }
+        /* Submit button: bigger on mobile */
+        [data-testid="stFormSubmitButton"] button {
+            min-height: 56px !important;
+            font-size: 1.1rem !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("""
     <div class="gen-header">
         <h2 class="gen-title">⚡ BUILD YOUR PROGRAM</h2>

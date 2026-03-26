@@ -25,7 +25,7 @@ def get_rpe_color(rpe_str):
         return "#FFD700"
 
 def show_exercise(ex):
-    c1, c2 = st.columns([11, 1])
+    c1, c2 = st.columns([9, 1])
     with c1:
         weight_str = ex.get('weight', 'Bodyweight')
         rpe_val    = ex.get('rpe', '?')
@@ -141,15 +141,13 @@ def show_dashboard(user, plan_row, log):
 
                     w_squat, w_bench, w_deadlift = 0, 0, 0
                     if active_lifts:
-                        lift_cols = st.columns(len(active_lifts))
-                        for i, lift in enumerate(active_lifts):
-                            with lift_cols[i]:
-                                if lift == "squat":
-                                    w_squat    = st.number_input("🦵 Squat (kg)",    min_value=0)
-                                elif lift == "bench":
-                                    w_bench    = st.number_input("💪 Bench (kg)",    min_value=0)
-                                elif lift == "deadlift":
-                                    w_deadlift = st.number_input("⚡ Deadlift (kg)", min_value=0)
+                        for lift in active_lifts:
+                            if lift == "squat":
+                                w_squat    = st.number_input("🦵 Squat kg",    min_value=0, key="log_squat")
+                            elif lift == "bench":
+                                w_bench    = st.number_input("💪 Bench kg",    min_value=0, key="log_bench")
+                            elif lift == "deadlift":
+                                w_deadlift = st.number_input("⚡ Deadlift kg", min_value=0, key="log_dead")
 
                     rpe_felt      = st.slider("😤 How hard did it feel? (RPE)", 1, 10, 7)
                     notes         = st.text_input("📝 Notes (optional)")
@@ -227,11 +225,13 @@ def show_dashboard(user, plan_row, log):
     with tab3:
         diet = plan["diet"]
         st.subheader("🍽️ Your Daily Indian Diet Plan")
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("🔥 Calories", f"{diet['calories']} kcal")
-        m2.metric("🥩 Protein",  f"{diet['protein']}g")
-        m3.metric("🍚 Carbs",    f"{diet['carbs']}g")
-        m4.metric("🥑 Fats",     f"{diet['fats']}g")
+        # Two rows of 2 metrics — avoids 4-column squeeze on mobile
+        d_r1c1, d_r1c2 = st.columns(2)
+        d_r2c1, d_r2c2 = st.columns(2)
+        d_r1c1.metric("🔥 Calories", f"{diet['calories']} kcal")
+        d_r1c2.metric("🥩 Protein",  f"{diet['protein']}g")
+        d_r2c1.metric("🍚 Carbs",    f"{diet['carbs']}g")
+        d_r2c2.metric("🥑 Fats",     f"{diet['fats']}g")
         st.divider()
         for meal in diet["meals"]:
             with st.expander(f"🕐 {meal['time']} — {meal['name']}"):

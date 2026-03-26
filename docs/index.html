@@ -905,6 +905,98 @@
         <p>Built with ❤️ for Indian powerlifters &nbsp;·&nbsp; <span>IRONIQ</span> © 2026</p>
     </footer>
 
+    <!-- Modals -->
+    <div id="getStartedModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('getStartedModal')">&times;</span>
+            <h2>🚀 Get Started Free</h2>
+            <p>Ready to begin your powerlifting journey?</p>
+            <button class="btn btn-primary" onclick="redirect('https://your-app-url.com/signup')">Sign Up Now</button>
+            <br><br>
+            <p style="font-size: 0.85rem; color: #666;">Or redirect to your Streamlit app URL</p>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">&times;</span>
+            <h2>🔐 Login</h2>
+            <p>Welcome back, powerlifter!</p>
+            <button class="btn btn-primary" onclick="redirect('https://your-app-url.com/login')">Login to
+                Account</button>
+            <br><br>
+            <p style="font-size: 0.85rem; color: #666;">Or redirect to your Streamlit app URL</p>
+        </div>
+    </div>
+
+    <div id="learnMoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('learnMoreModal')">&times;</span>
+            <h2>📚 Learn More</h2>
+            <p><strong>IRONIQ Features:</strong></p>
+            <ul style="text-align: left; color: #888;">
+                <li>✅ AI-powered personalized programs</li>
+                <li>✅ Indian diet plans</li>
+                <li>✅ Real-time progress tracking</li>
+                <li>✅ Daily scoring system</li>
+                <li>✅ Beginner-friendly guidance</li>
+            </ul>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="redirect('https://your-app-url.com')">Get
+                Started</button>
+        </div>
+    </div>
+
+    <script>
+        // Button click handlers
+        document.getElementById('navLogin').addEventListener('click', function () {
+            openModal('loginModal');
+        });
+
+        document.getElementById('heroGetStarted').addEventListener('click', function () {
+            openModal('getStartedModal');
+        });
+
+        document.getElementById('learnMore').addEventListener('click', function () {
+            openModal('learnMoreModal');
+        });
+
+        document.getElementById('finalCTA').addEventListener('click', function () {
+            openModal('getStartedModal');
+        });
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function (event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        });
+
+        // Redirect function
+        function redirect(url) {
+            // Replace with your actual Streamlit app URL
+            window.location.href = 'https://powerlifting-ai.streamlit.app/'; g
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -11,6 +11,7 @@ def show_landing():
         display: flex; align-items: center;
         justify-content: space-between;
         padding: 14px 0 10px;
+        width: 100%;
     }
     .lp-logo {
         font-family: 'Rajdhani', sans-serif;

@@ -59,6 +59,16 @@ def load_css():
         touch-action: manipulation;
     }
 
+    /* ── BLOCK CONTAINER — cap width, reduce Streamlit's excess padding ── */
+    .block-container {
+        max-width: 1100px !important;
+        padding: 2rem 3rem !important;
+        margin: 0 auto !important;
+    }
+    @media (max-width: 1200px) {
+        .block-container { padding: 1.5rem 2rem !important; }
+    }
+
     /* ── BACKGROUND GYM LAYER ── */
     .bg-gym-layer {
         position: fixed;

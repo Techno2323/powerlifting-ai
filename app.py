@@ -14,7 +14,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 st.set_page_config(
     page_title="IRONIQ — Indian Powerlifting AI",
     page_icon="🏋️",
-    layout="centered"
+    layout="wide"
 )
 
 load_css()

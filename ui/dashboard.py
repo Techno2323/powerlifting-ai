@@ -298,12 +298,19 @@ def show_dashboard(user, plan_row, log):
                 elif val < 0: return f'<span class="lift-pr-delta negative">▼ {val:.0f} kg</span>'
                 else:         return f'<span class="lift-pr-delta neutral">— no change</span>'
 
+            def lift_delta(series):
+                """Delta between first and last session where this lift was logged (>0)."""
+                s = series[series > 0]
+                if len(s) < 2:
+                    return 0.0
+                return float(s.iloc[-1] - s.iloc[0])
+
             sq_max  = safe_max(df["Squat"])
             bp_max  = safe_max(df["Bench"])
             dl_max  = safe_max(df["Deadlift"])
-            sq_d    = df["Squat"].iloc[-1]    - df["Squat"].iloc[0]
-            bp_d    = df["Bench"].iloc[-1]    - df["Bench"].iloc[0]
-            dl_d    = df["Deadlift"].iloc[-1] - df["Deadlift"].iloc[0]
+            sq_d    = lift_delta(df["Squat"])
+            bp_d    = lift_delta(df["Bench"])
+            dl_d    = lift_delta(df["Deadlift"])
             total_s = int(df["Score"].sum())
 
             c1, c2, c3, c4 = st.columns(4)

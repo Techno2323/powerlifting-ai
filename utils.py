@@ -27,8 +27,8 @@ def build_session_schedule(plan: dict, start_date: date) -> list[dict]:
     """
     sessions = []
     current_date = start_date
-    training_days = plan.get("training_days", 3)
-    gap = max(1, 7 // training_days)  # at least 1 day gap, avoid ZeroDivisionError
+    training_days = plan.get("training_days", 3) or 3
+    gap = max(1, 7 // training_days)  # at least 1 day gap
 
     for week in plan.get("weeks", []):
         for day in week.get("days", []):

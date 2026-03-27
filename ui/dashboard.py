@@ -22,7 +22,7 @@ def get_rpe_color(rpe_str):
         elif rpe <= 8: return "#FFD700"
         elif rpe <= 9: return "#f97316"
         else:          return "#ef4444"
-    except:
+    except (ValueError, TypeError):
         return "#FFD700"
 
 def show_exercise(ex):

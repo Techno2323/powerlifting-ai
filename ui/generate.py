@@ -76,8 +76,13 @@ def show_generate(user_id):
         submitted = st.form_submit_button("🚀 GENERATE MY PLAN", use_container_width=True)
 
     if submitted:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        if squat == 0 and bench == 0 and deadlift == 0:
+            st.error("❌ Please enter at least one lift max before generating your plan.")
+            st.stop()
+        if bodyweight == 0:
+            st.warning("⚠️ Bodyweight is 0 — your diet plan may be inaccurate. You can still proceed.")
+
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
         prompt = f"""
         You are an elite powerlifting coach with 20 years of experience coaching Indian athletes.

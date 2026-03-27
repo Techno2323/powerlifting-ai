@@ -45,11 +45,8 @@ def load_css():
         margin: 0 !important; padding: 0 !important;
     }
 
-    /* ── FIX: ONLY hide column resize bars, NOT inputs ── */
-    [data-testid="stHorizontalBlock"] > .resize-handle,
-    [data-testid="stHorizontalBlock"] [class*="resize"] {
-        display: none !important;
-    }
+    /* ── COLUMN RESIZE HANDLES — removed aggressive hide rule that broke form inputs ── */
+    /* Streamlit's internal resize handle is 8px wide and purely cosmetic; no override needed */
 
     /* Remove 300ms tap delay on all interactive elements */
     a, button, input, select, textarea,
@@ -57,13 +54,11 @@ def load_css():
         touch-action: manipulation;
     }
 
-    /* ── BLOCK CONTAINER ── */
+    /* ── BLOCK CONTAINER — cap width, reduce Streamlit's excess padding ── */
     .block-container {
         max-width: 1100px !important;
         padding: 2rem 3rem !important;
         margin: 0 auto !important;
-        position: relative;
-        z-index: 1;
     }
     @media (max-width: 1200px) {
         .block-container { padding: 1.5rem 2rem !important; }
@@ -480,15 +475,317 @@ def load_css():
         [data-testid="stNumberInput"] input { font-size: 1.2rem; }
     }
 
-    /* ── GEN PAGE SPECIFIC ── */
-    .gen-header { text-align: center; padding: 20px 0; z-index: 2; position: relative; }
-    .gen-title { font-family: 'Rajdhani', sans-serif; font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 700; color: #FFD700; margin-bottom: 8px; }
-    .gen-subtitle { color: #666; font-size: 1rem; margin-bottom: 24px; }
-    .gen-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-top: 24px; z-index: 2; position: relative; }
-    .gen-card { background: #111; border: 1px solid #FFD70030; border-radius: 12px; padding: 20px; text-align: center; transition: all 0.2s; }
-    .gen-card:hover { border-color: #FFD700; transform: translateY(-4px); box-shadow: 0 8px 24px #FFD70015; }
-    .gen-card-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
-    .gen-card-name { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #FFD700; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 4px; }
-    .gen-card-sub { color: #555; font-size: 0.75rem; }
+    /* ── GENERATE PAGE HEADER ── */
+    .gen-header {
+        background: linear-gradient(135deg, #111, #0d0d0d);
+        border: 1px solid #FFD70020;
+        border-radius: 20px;
+        padding: clamp(20px, 5vw, 40px);
+        margin-bottom: 20px;
+        text-align: center;
+        box-shadow: 0 0 40px #FFD70008;
+        animation: heroIn 0.6s ease both;
+    }
+    .gen-title {
+        color: #FFD700;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin: 0;
+    }
+    .gen-subtitle {
+        color: #444;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 8px;
+    }
+    .gen-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 24px;
+    }
+    .gen-card {
+        background: #0a0a0a;
+        border: 1px solid #FFD70020;
+        border-radius: 14px;
+        padding: 20px 14px;
+        text-align: center;
+        transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .gen-card:hover { transform: translateY(-5px); border-color: #FFD70055; box-shadow: 0 8px 30px #FFD70015; }
+    .gen-card-icon {
+        font-size: 2.2rem;
+        display: block;
+        margin-bottom: 8px;
+        animation: iconBounce 2.5s ease-in-out infinite;
+    }
+    .gen-card:nth-child(2) .gen-card-icon { animation-delay: 0.35s; }
+    .gen-card:nth-child(3) .gen-card-icon { animation-delay: 0.7s; }
+    @keyframes iconBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .gen-card-name { color: #FFD700; font-weight: 700; letter-spacing: 2px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
+    .gen-card-sub  { color: #444; font-size: 0.72rem; margin-top: 4px; }
+
+    /* ── PROGRESS DASHBOARD ── */
+    .progress-header {
+        text-align: center;
+        padding: 20px 0 28px;
+        animation: heroIn 0.6s ease both;
+    }
+    .progress-title {
+        font-family: 'Rajdhani', sans-serif;
+        color: #FFD700;
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin: 0;
+    }
+    .progress-sub {
+        color: #444;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 8px;
+    }
+    .lift-pr-card {
+        background: linear-gradient(145deg, #141414, #101010);
+        border: 1px solid #FFD70022;
+        border-radius: 16px;
+        padding: 20px 16px;
+        text-align: center;
+        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        animation: cardIn 0.5s ease both;
+        position: relative;
+        overflow: hidden;
+    }
+    .lift-pr-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at top, #FFD70008 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .lift-pr-card:hover {
+        transform: translateY(-5px);
+        border-color: #FFD70055;
+        box-shadow: 0 10px 40px #FFD70020;
+    }
+    .lift-pr-icon {
+        font-size: 1.6rem;
+        display: block;
+        margin-bottom: 10px;
+        animation: iconBounce 3s ease-in-out infinite;
+    }
+    .lift-pr-label {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.7rem;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+    .lift-pr-value {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        color: #FFD700;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .lift-pr-delta {
+        font-size: 0.78rem;
+        margin-top: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+    .lift-pr-delta.positive { color: #22c55e; }
+    .lift-pr-delta.negative { color: #ef4444; }
+    .lift-pr-delta.neutral  { color: #555; }
+    .chart-section {
+        background: linear-gradient(145deg, #0d0d0d, #0a0a0a);
+        border: 1px solid #1a1a1a;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        animation: cardIn 0.5s ease both;
+    }
+    .chart-title {
+        font-family: 'Rajdhani', sans-serif;
+        color: #FFD700;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .empty-progress {
+        text-align: center;
+        padding: 60px 20px;
+        animation: heroIn 0.6s ease both;
+    }
+    .empty-progress .empty-icon { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+    .empty-progress h3 {
+        color: #888;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+    .empty-progress p { color: #444; font-size: 0.88rem; line-height: 1.6; }
+    .session-table-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 60px 70px;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #181818;
+        background: #0e0e0e;
+        margin-bottom: 6px;
+        font-size: 0.82rem;
+        transition: background 0.2s;
+    }
+    .session-table-row:hover { background: #121212; }
+    .session-table-head {
+        color: #555;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #080808; }
+    ::-webkit-scrollbar-thumb { background: #FFD70044; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FFD70099; }
+
+    /* ══════════════════════════
+       MOBILE — max 640px
+    ══════════════════════════ */
+    @media (max-width: 640px) {
+        /* Safe area insets for notched phones */
+        .block-container {
+            padding: 1rem 1rem 2rem !important;
+            padding-left: max(1rem, env(safe-area-inset-left)) !important;
+            padding-right: max(1rem, env(safe-area-inset-right)) !important;
+            padding-bottom: max(2rem, env(safe-area-inset-bottom)) !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        /* Hide Streamlit column resize handles */
+        [data-testid="column"] > div:first-child::after { display: none !important; }
+
+        /* Stack Streamlit columns — ONLY for multi-column rows in forms/dashboards.
+           NOT applied globally so it doesn't break single-col layouts */
+        [data-testid="stForm"] [data-testid="stHorizontalBlock"],
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+        [data-testid="stForm"] [data-testid="column"],
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+
+        /* Tabs scroll */
+        .stTabs [data-baseweb="tab-list"] { justify-content: flex-start !important; }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.78rem !important;
+            padding: 10px 12px !important;
+            min-height: 44px !important;
+        }
+
+        /* Buttons — full width ONLY inside forms and tab panels, NOT globally */
+        [data-testid="stForm"] .stButton > button,
+        [data-testid="stFormSubmitButton"] button,
+        [data-baseweb="tab-panel"] .stButton > button {
+            width: 100% !important;
+            padding: 16px !important;
+            font-size: 1rem !important;
+            min-height: 52px !important;
+        }
+
+        /* Number inputs */
+        [data-testid="stNumberInput"] input {
+            font-size: 1.3rem !important;
+            min-height: 56px !important;
+        }
+
+        /* Title */
+        h1 { font-size: 1.8rem !important; }
+
+        /* Generate cards: 1 column on mobile */
+        .gen-cards { grid-template-columns: 1fr !important; gap: 10px !important; }
+        .gen-card { padding: 14px !important; }
+        .gen-card-icon { font-size: 1.8rem !important; }
+
+        /* Hero stat row */
+        .hero-stats-row { gap: 8px !important; }
+        .hero-stat { padding: 10px 12px !important; min-width: 64px !important; }
+        .hero-stat .number { font-size: 1.3rem !important; }
+
+        /* Reduce floating elements on mobile (performance) */
+        .gym-float { will-change: auto !important; animation: none !important; opacity: 0 !important; }
+
+        /* Exercise cards */
+        .ex-name { font-size: 0.95rem !important; }
+        .ex-card { padding: 12px 14px !important; margin-bottom: 8px !important; }
+        .ex-card:hover { transform: none !important; }
+
+        /* Schedule items */
+        .schedule-item { padding: 10px 12px !important; gap: 8px !important; }
+
+        /* Metrics */
+        [data-testid="metric-container"] { padding: 14px 10px !important; }
+        [data-testid="metric-container"] [data-testid="stMetricValue"] { font-size: 1.4rem !important; }
+
+        /* Form inner padding */
+        [data-testid="stForm"] { padding: 14px !important; border-radius: 14px !important; }
+
+        /* Expander */
+        [data-testid="stExpander"] summary { min-height: 56px !important; padding: 0 14px !important; }
+
+        /* Slider thumb */
+        .stSlider [data-baseweb="slider"] div[role="slider"] {
+            width: 32px !important;
+            height: 32px !important;
+        }
+
+        /* Gen header */
+        .gen-header { padding: 16px !important; }
+        .gen-title { letter-spacing: 1.5px !important; }
+    }
+
+    /* ══════════════════════════
+       ULTRA-SMALL — max 390px
+    ══════════════════════════ */
+    @media (max-width: 390px) {
+        .block-container { padding: 0.75rem !important; }
+        h1 { font-size: 1.5rem !important; }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.72rem !important;
+            padding: 8px 10px !important;
+        }
+        .ex-card { padding: 10px 12px !important; }
+        [data-testid="metric-container"] { padding: 12px 8px !important; }
+        [data-testid="metric-container"] [data-testid="stMetricValue"] { font-size: 1.2rem !important; }
+    }
+
+    /* ══════════════════════════
+       TABLET — 641-1024px
+    ══════════════════════════ */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .block-container { padding: 1.5rem !important; }
+        .gen-cards { grid-template-columns: repeat(3, 1fr) !important; }
+    }
     </style>
     """, unsafe_allow_html=True)

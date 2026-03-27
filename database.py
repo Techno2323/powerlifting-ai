@@ -138,9 +138,17 @@ class WorkoutRepository:
                 .execute()
             )
             if existing.data:
-                supabase.table("workout_logs").update(entry).eq("user_id", user_id).eq("session_id", session_id).execute()
+                (
+                    supabase.table("workout_logs")
+                    .update(entry)
+                    .eq("user_id", user_id)
+                    .eq("session_id", session_id)
+                    .execute()
+                )
             else:
-                supabase.table("workout_logs").insert({**entry, "user_id": user_id, "session_id": session_id}).execute()
+                supabase.table("workout_logs").insert(
+                    {**entry, "user_id": user_id, "session_id": session_id}
+                ).execute()
             logger.info("save_log_entry succeeded for user %s session %s", user_id, session_id)
         except Exception as exc:
             logger.error("save_log_entry failed for user %s session %s: %s", user_id, session_id, exc)

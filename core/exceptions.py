@@ -11,7 +11,7 @@ class ValidationError(PowerliftingAIError):
 
 
 class AuthError(PowerliftingAIError):
-    """Raised when an authentication or authorisation operation fails."""
+    """Raised when an authentication or authorization operation fails."""
 
 
 class DatabaseError(PowerliftingAIError):

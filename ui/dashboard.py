@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from datetime import date
 from database import save_log_entry, archive_plan, delete_plan
 from utils import build_session_schedule, get_today_session, calculate_progress, calculate_score
@@ -84,7 +85,7 @@ def show_dashboard(user, plan_row, log):
             st.rerun()
         return
 
-    tab1, tab2, tab3, tab4 = st.tabs(["🏠 Dashboard", "📋 Full Program", "🍽️ Diet Plan", "💡 Tips"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 Dashboard", "📋 Full Program", "🍽️ Diet Plan", "💡 Tips", "📈 Progress"])
 
     # ── Tab 1: Dashboard ──
     with tab1:
@@ -246,3 +247,179 @@ def show_dashboard(user, plan_row, log):
         st.subheader("💡 Coach's Tips")
         for i, tip in enumerate(plan["tips"], 1):
             st.info(f"💡 **Tip {i}:** {tip}")
+
+    # ── Tab 5: Progress Dashboard ──
+    with tab5:
+        st.markdown("""
+        <div class="progress-header">
+            <div class="progress-title">📈 STRENGTH JOURNEY</div>
+            <div class="progress-sub">Your performance data — session by session</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Build DataFrame from log ──
+        progress_rows = []
+        for sid, entry in log.items():
+            if entry.get("completed") and entry.get("date"):
+                progress_rows.append({
+                    "Session":     sid,
+                    "Date":        entry.get("date", ""),
+                    "Squat":       float(entry.get("squat",    0) or 0),
+                    "Bench":       float(entry.get("bench",    0) or 0),
+                    "Deadlift":    float(entry.get("deadlift", 0) or 0),
+                    "RPE":         float(entry.get("rpe",      7) or 7),
+                    "Score":       int(entry.get("score",      0) or 0),
+                    "Notes":       entry.get("notes", "") or "",
+                })
+
+        if not progress_rows:
+            st.markdown("""
+            <div class="empty-progress">
+                <span class="empty-icon">🏋️</span>
+                <h3>No Progress Data Yet</h3>
+                <p>Complete your first workout and log your weights.<br>
+                Your strength journey starts here — come back after your first session!</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            df = (
+                pd.DataFrame(progress_rows)
+                .sort_values("Date")
+                .reset_index(drop=True)
+            )
+
+            # ── PR Summary Cards ──
+            def safe_max(series):
+                s = series[series > 0]
+                return s.max() if not s.empty else 0.0
+
+            def delta_html(val):
+                if val > 0:   return f'<span class="lift-pr-delta positive">▲ +{val:.0f} kg</span>'
+                elif val < 0: return f'<span class="lift-pr-delta negative">▼ {val:.0f} kg</span>'
+                else:         return f'<span class="lift-pr-delta neutral">— no change</span>'
+
+            def lift_delta(series):
+                """Delta between first and last session where this lift was logged (>0)."""
+                s = series[series > 0]
+                if len(s) < 2:
+                    return 0.0
+                return float(s.iloc[-1] - s.iloc[0])
+
+            sq_max  = safe_max(df["Squat"])
+            bp_max  = safe_max(df["Bench"])
+            dl_max  = safe_max(df["Deadlift"])
+            sq_d    = lift_delta(df["Squat"])
+            bp_d    = lift_delta(df["Bench"])
+            dl_d    = lift_delta(df["Deadlift"])
+            total_s = int(df["Score"].sum())
+
+            c1, c2, c3, c4 = st.columns(4)
+            cards = [
+                (c1, "🦵", "SQUAT PR",    sq_max,  sq_d),
+                (c2, "💪", "BENCH PR",    bp_max,  bp_d),
+                (c3, "⚡", "DEADLIFT PR", dl_max,  dl_d),
+            ]
+            for col, icon, label, val, delta in cards:
+                with col:
+                    val_str = f"{val:.0f} kg" if val > 0 else "—"
+                    st.markdown(f"""
+                    <div class="lift-pr-card">
+                        <span class="lift-pr-icon">{icon}</span>
+                        <div class="lift-pr-label">{label}</div>
+                        <div class="lift-pr-value">{val_str}</div>
+                        {delta_html(delta) if val > 0 else ''}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with c4:
+                st.markdown(f"""
+                <div class="lift-pr-card">
+                    <span class="lift-pr-icon">🏆</span>
+                    <div class="lift-pr-label">TOTAL SCORE</div>
+                    <div class="lift-pr-value">{total_s}</div>
+                    <span class="lift-pr-delta neutral">{len(df)} sessions logged</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Strength Progression Chart ──
+            lift_df = df[["Date", "Squat", "Bench", "Deadlift"]].copy()
+            has_lifts = (lift_df["Squat"] > 0).any() or (lift_df["Bench"] > 0).any() or (lift_df["Deadlift"] > 0).any()
+
+            st.markdown('<div class="chart-section"><div class="chart-title">💹 Strength Progression</div>', unsafe_allow_html=True)
+            if has_lifts:
+                chart_df = lift_df.set_index("Date")
+                # Drop rows where all lifts are 0 (rest-day logs)
+                chart_df = chart_df[(chart_df > 0).any(axis=1)]
+                # Replace 0s with NaN so they don't drag the line to zero
+                chart_df = chart_df.replace(0, float("nan"))
+                st.line_chart(
+                    chart_df,
+                    color=["#FFD700", "#F97316", "#EF4444"],
+                    height=280,
+                    use_container_width=True,
+                )
+                st.caption("🟡 Squat  🟠 Bench  🔴 Deadlift  (kg logged per session)")
+            else:
+                st.info("Log weight values when completing sessions to see your strength progression chart.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # ── Score & RPE Charts (side by side) ──
+            ch1, ch2 = st.columns(2)
+
+            with ch1:
+                st.markdown('<div class="chart-section"><div class="chart-title">⭐ Session Scores</div>', unsafe_allow_html=True)
+                score_df = df[["Date", "Score"]].set_index("Date")
+                st.bar_chart(score_df, color="#FFD700", height=220, use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            with ch2:
+                st.markdown('<div class="chart-section"><div class="chart-title">😤 Training Intensity (RPE)</div>', unsafe_allow_html=True)
+                rpe_df = df[["Date", "RPE"]].set_index("Date")
+                st.area_chart(rpe_df, color="#F97316", height=220, use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            # ── Session History Table ──
+            st.divider()
+            st.markdown("### 📊 Full Session Log")
+
+            # Table header
+            st.markdown("""
+            <div class="session-table-row">
+                <span class="session-table-head">Date</span>
+                <span class="session-table-head">🦵 Squat</span>
+                <span class="session-table-head">💪 Bench</span>
+                <span class="session-table-head">⚡ Deadlift</span>
+                <span class="session-table-head">RPE</span>
+                <span class="session-table-head">Score</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for _, row in df.iterrows():
+                sq_str  = f"{row['Squat']:.0f} kg"    if row["Squat"]    > 0 else "—"
+                bp_str  = f"{row['Bench']:.0f} kg"    if row["Bench"]    > 0 else "—"
+                dl_str  = f"{row['Deadlift']:.0f} kg" if row["Deadlift"] > 0 else "—"
+                score_color = "#22c55e" if row["Score"] >= 80 else ("#FFD700" if row["Score"] >= 50 else "#ef4444")
+                st.markdown(f"""
+                <div class="session-table-row">
+                    <span style="color:#bbb">{row['Date']}</span>
+                    <span style="color:#FFD700;font-weight:600">{sq_str}</span>
+                    <span style="color:#F97316;font-weight:600">{bp_str}</span>
+                    <span style="color:#EF4444;font-weight:600">{dl_str}</span>
+                    <span style="color:#999">{row['RPE']:.0f}</span>
+                    <span style="color:{score_color};font-weight:700">{row['Score']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if df[df["Notes"] != ""].shape[0] > 0:
+                st.divider()
+                st.markdown("### 📝 Session Notes")
+                for _, row in df[df["Notes"] != ""].iterrows():
+                    st.markdown(f"""
+                    <div class="ex-card" style="border-left-color:#F97316">
+                        <div class="ex-note" style="font-style:normal;color:#aaa">
+                            <strong style="color:#F97316">{row['Date']}</strong> — {row['Notes']}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)

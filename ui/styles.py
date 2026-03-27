@@ -48,10 +48,8 @@ def load_css():
         margin: 0 !important; padding: 0 !important;
     }
 
-    /* ── HIDE COLUMN RESIZE HANDLES (those | bars) ── */
-    [data-testid="stHorizontalBlock"] > div:not([data-testid="column"]) {
-        display: none !important;
-    }
+    /* ── COLUMN RESIZE HANDLES — removed aggressive hide rule that broke form inputs ── */
+    /* Streamlit's internal resize handle is 8px wide and purely cosmetic; no override needed */
 
     /* Remove 300ms tap delay on all interactive elements */
     a, button, input, select, textarea,
@@ -549,6 +547,137 @@ def load_css():
     @keyframes iconBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
     .gen-card-name { color: #FFD700; font-weight: 700; letter-spacing: 2px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
     .gen-card-sub  { color: #444; font-size: 0.72rem; margin-top: 4px; }
+
+    /* ── PROGRESS DASHBOARD ── */
+    .progress-header {
+        text-align: center;
+        padding: 20px 0 28px;
+        animation: heroIn 0.6s ease both;
+    }
+    .progress-title {
+        font-family: 'Rajdhani', sans-serif;
+        color: #FFD700;
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin: 0;
+    }
+    .progress-sub {
+        color: #444;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 8px;
+    }
+    .lift-pr-card {
+        background: linear-gradient(145deg, #141414, #101010);
+        border: 1px solid #FFD70022;
+        border-radius: 16px;
+        padding: 20px 16px;
+        text-align: center;
+        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        animation: cardIn 0.5s ease both;
+        position: relative;
+        overflow: hidden;
+    }
+    .lift-pr-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at top, #FFD70008 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .lift-pr-card:hover {
+        transform: translateY(-5px);
+        border-color: #FFD70055;
+        box-shadow: 0 10px 40px #FFD70020;
+    }
+    .lift-pr-icon {
+        font-size: 1.6rem;
+        display: block;
+        margin-bottom: 10px;
+        animation: iconBounce 3s ease-in-out infinite;
+    }
+    .lift-pr-label {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.7rem;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+    .lift-pr-value {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        color: #FFD700;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .lift-pr-delta {
+        font-size: 0.78rem;
+        margin-top: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+    .lift-pr-delta.positive { color: #22c55e; }
+    .lift-pr-delta.negative { color: #ef4444; }
+    .lift-pr-delta.neutral  { color: #555; }
+    .chart-section {
+        background: linear-gradient(145deg, #0d0d0d, #0a0a0a);
+        border: 1px solid #1a1a1a;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        animation: cardIn 0.5s ease both;
+    }
+    .chart-title {
+        font-family: 'Rajdhani', sans-serif;
+        color: #FFD700;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .empty-progress {
+        text-align: center;
+        padding: 60px 20px;
+        animation: heroIn 0.6s ease both;
+    }
+    .empty-progress .empty-icon { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+    .empty-progress h3 {
+        color: #888;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+    .empty-progress p { color: #444; font-size: 0.88rem; line-height: 1.6; }
+    .session-table-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 60px 70px;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #181818;
+        background: #0e0e0e;
+        margin-bottom: 6px;
+        font-size: 0.82rem;
+        transition: background 0.2s;
+    }
+    .session-table-row:hover { background: #121212; }
+    .session-table-head {
+        color: #555;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }

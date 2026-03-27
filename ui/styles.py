@@ -32,13 +32,10 @@ def load_css():
         color: #d4d4d4;
         -webkit-font-smoothing: antialiased;
     }
-    .stApp { background: #080808; min-height: 100vh; }
+    .stApp { background: #080808; min-height: 100vh; z-index: 1; position: relative; }
     #MainMenu, footer, header { visibility: hidden; }
 
-    /* ── HIDDEN BUTTON SYSTEM ──
-       Marker divs (class="st-hb") are injected before each hidden Streamlit button.
-       :has() selects the div that CONTAINS the marker, then + div targets the
-       immediate next sibling which is the actual Streamlit button container. */
+    /* ── HIDDEN BUTTON SYSTEM ── */
     .st-hb { display: none !important; }
     div:has(.st-hb) + div {
         position: absolute !important;
@@ -72,7 +69,7 @@ def load_css():
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         pointer-events: none;
-        z-index: 0;
+        z-index: -1;
         overflow: hidden;
     }
     .gym-float {
@@ -96,6 +93,16 @@ def load_css():
         8%   { opacity: 0.07; }
         88%  { opacity: 0.05; }
         100% { opacity: 0;    transform: translateY(-115vh) rotate(25deg); }
+    }
+
+    /* ── ENSURE ALL INPUTS ARE VISIBLE ── */
+    [data-testid="stNumberInput"],
+    [data-testid="stSelectbox"],
+    [data-testid="stTextInput"],
+    [data-testid="stForm"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     /* ── TYPOGRAPHY ── */
@@ -140,6 +147,7 @@ def load_css():
         overflow: hidden !important;
         touch-action: manipulation !important;
         -webkit-tap-highlight-color: transparent !important;
+        z-index: 2;
     }
     .stButton > button::before {
         content: '';
@@ -166,15 +174,17 @@ def load_css():
         border-radius: 10px !important;
         color: #e0e0e0 !important;
         padding: 14px 16px !important;
-        font-size: 16px !important; /* prevents iOS zoom-on-focus */
+        font-size: 16px !important;
         min-height: 48px !important;
         transition: border-color 0.25s, box-shadow 0.25s !important;
         touch-action: manipulation !important;
+        z-index: 2;
     }
     .stTextInput input:focus {
         border-color: #FFD700 !important;
         box-shadow: 0 0 0 3px #FFD70022 !important;
     }
+
     [data-testid="stNumberInput"] input {
         background: #0d0d0d !important;
         border: 1px solid #FFD70030 !important;
@@ -187,24 +197,28 @@ def load_css():
         min-height: 52px !important;
         transition: border-color 0.25s, box-shadow 0.25s !important;
         touch-action: manipulation !important;
+        z-index: 2;
     }
     [data-testid="stNumberInput"] input:focus {
         border-color: #FFD700 !important;
         box-shadow: 0 0 0 3px #FFD70022 !important;
     }
-    /* Number input step buttons — bigger tap area */
+
     [data-testid="stNumberInput"] button {
         min-width: 44px !important;
         min-height: 44px !important;
         touch-action: manipulation !important;
+        z-index: 2;
     }
+
     [data-testid="stSelectbox"] > div > div {
         background: #111 !important;
         border: 1px solid #222 !important;
         border-radius: 10px !important;
         color: #e0e0e0 !important;
         min-height: 48px !important;
-        font-size: 16px !important; /* prevents iOS zoom */
+        font-size: 16px !important;
+        z-index: 2;
     }
     [data-testid="stSelectbox"] > div > div:hover { border-color: #FFD70044 !important; }
 
@@ -218,6 +232,7 @@ def load_css():
         overflow-x: auto !important;
         scrollbar-width: none !important;
         -webkit-overflow-scrolling: touch !important;
+        z-index: 2;
     }
     .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none; }
     .stTabs [data-baseweb="tab"] {
@@ -249,6 +264,7 @@ def load_css():
         transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s !important;
         box-shadow: 0 4px 20px #00000055 !important;
         animation: cardIn 0.5s ease both;
+        z-index: 2;
     }
     @keyframes cardIn {
         from { opacity: 0; transform: translateY(16px); }
@@ -280,6 +296,7 @@ def load_css():
         height: 8px !important;
         overflow: hidden !important;
         border: none !important;
+        z-index: 2;
     }
     [role="progressbar"] > div {
         background: linear-gradient(90deg, #B8860B, #FFD700, #FFA500, #FFD700) !important;
@@ -312,6 +329,7 @@ def load_css():
         margin-bottom: 10px;
         transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         animation: cardIn 0.4s ease both;
+        z-index: 2;
     }
     .ex-card:hover {
         transform: translateX(5px);
@@ -354,6 +372,7 @@ def load_css():
         border: 1px solid #181818;
         transition: background 0.2s, border-color 0.2s;
         -webkit-tap-highlight-color: transparent;
+        z-index: 2;
     }
     .schedule-item:hover { background: #121212; border-color: #222; }
     .schedule-item.today {
@@ -379,6 +398,7 @@ def load_css():
         padding: 14px 18px !important;
         margin: 8px 0 !important;
         transition: transform 0.2s, box-shadow 0.2s !important;
+        z-index: 2;
     }
     blockquote:hover {
         transform: translateX(5px) !important;
@@ -391,108 +411,68 @@ def load_css():
         border: 1px solid #1e1e1e !important;
         border-radius: 16px !important;
         padding: 22px !important;
+        z-index: 2;
+        position: relative;
     }
 
     /* ── EXPANDERS ── */
     [data-testid="stExpander"] {
         background: #0f0f0f !important;
         border: 1px solid #1a1a1a !important;
-        border-radius: 12px !important;
+        border-radius: 14px !important;
         overflow: hidden !important;
     }
-    [data-testid="stExpander"] summary {
-        color: #FFD700 !important;
+    [data-testid="stExpander"] button {
+        color: #999 !important;
         font-weight: 600 !important;
-        min-height: 52px !important; /* larger touch target */
-        display: flex !important;
-        align-items: center !important;
-        touch-action: manipulation !important;
-        -webkit-tap-highlight-color: transparent !important;
+        font-size: 0.95rem !important;
+        transition: color 0.2s !important;
+    }
+    [data-testid="stExpander"] button:hover { color: #FFD700 !important; }
+
+    /* ── ERRORS / ALERTS ── */
+    .stError, [data-testid="stAlert"] {
+        background: #2a1a1a !important;
+        border-left: 4px solid #ef4444 !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        color: #ff9999 !important;
+        font-size: 0.9rem !important;
     }
 
-    /* ── SLIDER ── */
-    .stSlider [data-baseweb="slider"] div[role="slider"] {
-        background: #FFD700 !important;
-        border: 3px solid #000 !important;
-        box-shadow: 0 0 10px #FFD70066 !important;
-        width: 28px !important;
-        height: 28px !important;
-        touch-action: none !important; /* let slider handle its own drag */
-    }
-    /* Slider track — thicker on mobile */
-    .stSlider [data-baseweb="slider"] [role="progressbar"] {
-        height: 6px !important;
+    .stSuccess {
+        background: #1a2a1a !important;
+        border-left: 4px solid #22c55e !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        color: #99ff99 !important;
+        font-size: 0.9rem !important;
     }
 
-    /* ── ALERTS ── */
-    .stSuccess { background: #091209 !important; border: 1px solid #22c55e33 !important; border-radius: 12px !important; }
-    .stInfo    { background: #0c0c0e !important; border: 1px solid #FFD70022 !important; border-radius: 12px !important; }
-    .stWarning { background: #130f00 !important; border: 1px solid #f9731633 !important; border-radius: 12px !important; }
-    .stError   { background: #130808 !important; border: 1px solid #ef444433 !important; border-radius: 12px !important; }
+    .stWarning {
+        background: #2a2a1a !important;
+        border-left: 4px solid #eab308 !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        color: #ffff99 !important;
+        font-size: 0.9rem !important;
+    }
 
-    /* ── DIVIDER ── */
-    hr { border: none !important; border-top: 1px solid #1a1a1a !important; margin: 20px 0 !important; }
+    .stInfo {
+        background: #1a2a2a !important;
+        border-left: 4px solid #06b6d4 !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        color: #99ffff !important;
+        font-size: 0.9rem !important;
+    }
 
-    /* ── HERO BOX (Login) ── */
-    .hero-box {
-        background: linear-gradient(135deg, #141414, #0d0d0d);
-        border: 1px solid #FFD70020;
-        border-radius: 20px;
-        padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 40px);
-        text-align: center;
-        margin-bottom: 28px;
-        box-shadow: 0 0 60px #FFD70008, inset 0 1px 0 #FFD70015;
-        animation: heroIn 0.8s ease both;
-        position: relative;
-        overflow: hidden;
-    }
-    .hero-box::before {
-        content: '';
-        position: absolute;
-        top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background: radial-gradient(ellipse at center, #FFD70008 0%, transparent 60%);
-        animation: heroGlow 6s ease-in-out infinite;
-        pointer-events: none;
-    }
-    @keyframes heroIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes heroGlow { 0%,100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
-
-    .hero-stats-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 24px;
-    }
-    .hero-stat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        background: #FFD70010;
-        border: 1px solid #FFD70022;
-        border-radius: 14px;
-        padding: 14px 18px;
-        flex: 1;
-        min-width: 72px;
-        max-width: 130px;
-        transition: transform 0.2s, border-color 0.2s;
-    }
-    .hero-stat:hover { transform: translateY(-3px); border-color: #FFD70055; }
-    .hero-stat .number {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: clamp(1.3rem, 3.5vw, 2rem);
-        color: #FFD700;
-        font-weight: 700;
-        line-height: 1;
-    }
-    .hero-stat .label {
-        font-size: 0.62rem;
-        color: #555;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-top: 4px;
-        text-align: center;
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+        .block-container { padding: 1rem 1.5rem !important; }
+        h1 { font-size: clamp(1.5rem, 5vw, 2.5rem) !important; }
+        .stButton > button { min-height: 44px; font-size: 0.9rem; }
+        [data-testid="stNumberInput"] input { font-size: 1.2rem; }
     }
 
     /* ── GENERATE PAGE HEADER ── */

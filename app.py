@@ -40,7 +40,7 @@ if "user" not in st.session_state and "_access_token" in st.session_state:
         else:
             # Token expired/invalid
             st.session_state.pop("_access_token", None)
-    except:
+    except Exception:
         st.session_state.pop("_access_token", None)
 
 if "page" not in st.session_state:

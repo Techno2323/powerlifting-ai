@@ -133,6 +133,12 @@ def show_generate(user_id):
                 
                 # Expand with exercises
                 data = expand_minimal_json(data, int(days))
+
+                if not isinstance(data, dict) or not data.get("weeks"):
+                    raise ValueError("Generated plan is missing training weeks. Please try again.")
+
+                if not isinstance(data.get("diet"), dict):
+                    data["diet"] = {}
                 
                 # Calculate calories for diet
                 maintenance = (10 * int(bodyweight)) + (6.25 * int(height)) - (5 * int(age)) + 5
@@ -158,7 +164,7 @@ def show_generate(user_id):
                 fats = int(int(bodyweight) * 1.1)
                 
                 # Generate personalized diet
-                selected_meals, meal_macros = generate_diet_plan(
+                selected_meals, meal_macros, meal_alternatives = generate_diet_plan(
                     bodyweight=int(bodyweight),
                     height=int(height),
                     age=int(age),
@@ -187,6 +193,7 @@ def show_generate(user_id):
                 data["diet"]["fats"] = fats
                 data["diet"]["maintenance"] = int(maintenance)
                 data["diet"]["tdee"] = int(tdee)
+                data["diet"]["meal_alternatives"] = meal_alternatives
                 
                 # Add program metadata
                 data["start_date"] = str(date.today())

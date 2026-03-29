@@ -139,6 +139,12 @@ def show_generate(user_id):
                 # STEP 2: Expand training plan with exercises
                 # ============================================================
                 data = expand_minimal_json(data, int(days))
+
+                if not isinstance(data, dict) or not data.get("weeks"):
+                    raise ValueError("Generated plan is missing training weeks. Please try again.")
+
+                if not isinstance(data.get("diet"), dict):
+                    data["diet"] = {}
                 
                 # ============================================================
                 # STEP 3: Calculate calorie needs
@@ -203,8 +209,6 @@ def show_generate(user_id):
                 data["diet"]["fats"] = fats
                 data["diet"]["maintenance"] = int(maintenance)
                 data["diet"]["tdee"] = int(tdee)
-                
-                # ⭐ STORE MEAL ALTERNATIVES (THIS IS THE KEY PART!)
                 data["diet"]["meal_alternatives"] = meal_alternatives
                 
                 # ============================================================

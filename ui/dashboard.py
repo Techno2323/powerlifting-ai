@@ -64,6 +64,10 @@ def show_dashboard(user, plan_row, log):
     from datetime import datetime
     user_id        = user.id
     plan           = plan_row["plan_data"]
+    if isinstance(plan, dict) and isinstance(plan.get("program"), dict):
+        nested_program = plan.get("program", {})
+        if nested_program.get("weeks"):
+            plan = nested_program
     start_date     = datetime.strptime(plan_row["start_date"], "%Y-%m-%d").date()
     today          = date.today()
     days_elapsed   = (today - start_date).days
@@ -215,22 +219,38 @@ def show_dashboard(user, plan_row, log):
     # ── Tab 2: Full Program ──
     with tab2:
         st.subheader("📋 Your Full 4-Week Program")
-        weeks = plan.get("weeks", [])
-        
-        for week in weeks:
-            st.subheader(f"Week {week.get('week', '?')} — {week.get('focus', '?')}")
-            days_list = week.get("days", [])
-            
-            for day in days_list:
-                with st.expander(f"📅 {day.get('label', 'Day')}"):
-                    exercises = day.get("exercises", [])
-                    
-                    if not exercises:
-                        st.info("No exercises for this day")
-                    else:
-                        for ex in exercises:
-                            show_exercise(ex)
-            st.divider()
+        weeks = plan.get("weeks", []) if isinstance(plan, dict) else []
+
+        # Fallback: some plan formats store all days at top-level.
+        if not weeks and isinstance(plan, dict) and plan.get("days"):
+            weeks = [{
+                "week": 1,
+                "focus": plan.get("focus", "Training Program"),
+                "days": plan.get("days", []),
+            }]
+
+        if not weeks:
+            st.warning("No program weeks found in your saved plan. Generate a new plan to populate this section.")
+            with st.expander("Show detected plan keys"):
+                if isinstance(plan, dict):
+                    st.write(sorted(list(plan.keys())))
+                else:
+                    st.write("Saved plan format is invalid")
+        else:
+            for week in weeks:
+                st.subheader(f"Week {week.get('week', '?')} — {week.get('focus', '?')}")
+                days_list = week.get("days", [])
+                
+                for day in days_list:
+                    with st.expander(f"📅 {day.get('label', 'Day')}"):
+                        exercises = day.get("exercises", [])
+                        
+                        if not exercises:
+                            st.info("No exercises for this day")
+                        else:
+                            for ex in exercises:
+                                show_exercise(ex)
+                st.divider()
 
     # ── Tab 3: Diet Plan ──
     # ── Tab 3: Diet Plan ──

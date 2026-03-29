@@ -123,17 +123,25 @@ def show_generate(user_id):
                 
                 # Save to database
                 save_plan(user_id, program_data)
-                
+
                 st.success("✅ Plan generated successfully!")
                 st.balloons()
-                
+
+                weeks = program_data.get("training", {}).get("weeks", [])
+                total_days = sum(len(w.get("days", [])) for w in weeks)
+                diet = program_data.get("diet", {})
+                st.info(
+                    f"📋 **Your program:** {len(weeks)} weeks · "
+                    f"{total_days} training sessions · "
+                    f"{diet.get('calories', 0)} kcal/day"
+                )
+
                 # Show preview
                 with st.expander("📋 Program Preview"):
                     st.json(program_data)
-                
-                import time
-                time.sleep(1)
-                st.rerun()
+
+                if st.button("🏠 Go to Dashboard", use_container_width=True):
+                    st.rerun()
                 
             except ValueError as e:
                 st.error(f"❌ Invalid input: {str(e)}")

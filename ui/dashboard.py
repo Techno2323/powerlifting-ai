@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from datetime import date
 from database import save_log_entry, archive_plan, delete_plan
 from utils import build_session_schedule, get_today_session, calculate_progress, calculate_score
@@ -60,16 +61,86 @@ def show_exercise(ex):
                 for term in relevant:
                     st.markdown(f"**{term.upper()}** — {GLOSSARY[term]}")
 
+
+def _normalize_plan_weeks(plan):
+    """Return a consistent weeks[] -> days[] -> exercises[] structure."""
+    if not isinstance(plan, dict):
+        return []
+
+    candidates = [
+        plan,
+        plan.get("program"),
+        plan.get("plan"),
+        plan.get("training_plan"),
+    ]
+
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+
+        weeks = candidate.get("weeks")
+        if isinstance(weeks, list) and weeks:
+            normalized = []
+            for idx, week in enumerate(weeks, 1):
+                if not isinstance(week, dict):
+                    continue
+
+                days_list = week.get("days")
+                if not isinstance(days_list, list) or not days_list:
+                    # Backward compatibility: convert day1_ex/day2_ex... into days[].
+                    day_keys = [k for k in week.keys() if re.match(r"^day\d+_ex$", str(k))]
+                    day_keys.sort(key=lambda k: int(re.findall(r"\d+", k)[0]))
+                    rebuilt_days = []
+                    for d_i, day_key in enumerate(day_keys, 1):
+                        ex_list = week.get(day_key, [])
+                        if isinstance(ex_list, list):
+                            rebuilt_days.append({
+                                "day_number": d_i,
+                                "label": f"Day {d_i}",
+                                "exercises": ex_list,
+                            })
+                    days_list = rebuilt_days
+
+                safe_days = [d for d in (days_list or []) if isinstance(d, dict)]
+                normalized.append({
+                    "week": week.get("week", idx),
+                    "focus": week.get("focus", "Training"),
+                    "days": safe_days,
+                })
+
+            if normalized:
+                return normalized
+
+        # Fallback for plans that store only top-level days.
+        top_days = candidate.get("days")
+        if isinstance(top_days, list) and top_days:
+            return [{
+                "week": 1,
+                "focus": candidate.get("focus", "Training Program"),
+                "days": [d for d in top_days if isinstance(d, dict)],
+            }]
+
+    return []
+
 def show_dashboard(user, plan_row, log):
     from datetime import datetime
     user_id        = user.id
     plan           = plan_row["plan_data"]
+
+    normalized_weeks = _normalize_plan_weeks(plan)
+    schedule_plan = dict(plan) if isinstance(plan, dict) else {}
+    schedule_plan["weeks"] = normalized_weeks
+
+    if not schedule_plan.get("training_days"):
+        first_week_days = len(normalized_weeks[0].get("days", [])) if normalized_weeks else 3
+        schedule_plan["training_days"] = max(1, first_week_days)
+
     start_date     = datetime.strptime(plan_row["start_date"], "%Y-%m-%d").date()
     today          = date.today()
     days_elapsed   = (today - start_date).days
-    training_days  = plan.get("training_days", 3)
+    training_days  = schedule_plan.get("training_days", 3)
 
-    all_sessions   = build_session_schedule(plan, start_date)
+    all_sessions   = build_session_schedule(schedule_plan, start_date)
     today_session  = get_today_session(all_sessions, log)
     total_completed, total_sessions, overall_progress, total_score = calculate_progress(all_sessions, log)
 
@@ -215,22 +286,36 @@ def show_dashboard(user, plan_row, log):
     # ── Tab 2: Full Program ──
     with tab2:
         st.subheader("📋 Your Full 4-Week Program")
-        weeks = plan.get("weeks", [])
-        
-        for week in weeks:
-            st.subheader(f"Week {week.get('week', '?')} — {week.get('focus', '?')}")
-            days_list = week.get("days", [])
-            
-            for day in days_list:
-                with st.expander(f"📅 {day.get('label', 'Day')}"):
-                    exercises = day.get("exercises", [])
-                    
-                    if not exercises:
-                        st.info("No exercises for this day")
-                    else:
-                        for ex in exercises:
-                            show_exercise(ex)
-            st.divider()
+        weeks = normalized_weeks
+
+        if not weeks:
+            st.warning("No program weeks found in your saved plan. Generate a new plan to populate this section.")
+            with st.expander("Show detected plan keys"):
+                if isinstance(plan, dict):
+                    st.write(sorted(list(plan.keys())))
+                else:
+                    st.write("Saved plan format is invalid")
+        else:
+            for week in weeks:
+                week_num = week.get("week", "?")
+                st.subheader(f"Week {week_num} — {week.get('focus', '?')}")
+                days_list = week.get("days", [])
+
+                if not days_list:
+                    st.info(f"No day structure found for Week {week_num}.")
+
+                for day_i, day in enumerate(days_list, 1):
+                    day_num = day.get("day_number", day_i)
+                    day_label = day.get("label", f"Day {day_num}")
+                    with st.expander(f"📅 Week {week_num} · Day {day_num} — {day_label}"):
+                        exercises = day.get("exercises", [])
+                        
+                        if not exercises:
+                            st.info("No exercises for this day")
+                        else:
+                            for ex in exercises:
+                                show_exercise(ex)
+                st.divider()
 
     # ── Tab 3: Diet Plan ──
     # ── Tab 3: Diet Plan ──

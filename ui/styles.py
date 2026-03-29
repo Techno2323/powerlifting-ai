@@ -222,6 +222,17 @@ def load_css():
     }
     [data-testid="stSelectbox"] > div > div:hover { border-color: #FFD70044 !important; }
 
+    /* BaseWeb select dropdown must float above custom cards/forms */
+    [data-baseweb="select"] {
+        position: relative;
+        z-index: 60;
+    }
+    [data-baseweb="popover"],
+    [role="listbox"] {
+        z-index: 9999 !important;
+        pointer-events: auto !important;
+    }
+
     /* ── TABS ── */
     .stTabs [data-baseweb="tab-list"] {
         background: #0f0f0f !important;
@@ -413,6 +424,7 @@ def load_css():
         padding: 22px !important;
         z-index: 2;
         position: relative;
+        overflow: visible !important;
     }
 
     /* ── EXPANDERS ── */

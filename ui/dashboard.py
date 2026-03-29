@@ -26,26 +26,34 @@ def get_rpe_color(rpe_str):
         return "#FFD700"
 
 def show_exercise(ex):
+    """Display exercise with safe field access"""
+    # Safe field extraction
+    name = ex.get('name', 'Exercise')
+    sets = ex.get('sets', '?')
+    reps = ex.get('reps', '?')
+    weight = ex.get('weight', '?')
+    rpe = ex.get('rpe', '?')
+    note = ex.get('note', '')
+    
     c1, c2 = st.columns([9, 1])
     with c1:
-        weight_str = ex.get('weight', 'Bodyweight')
-        rpe_val    = ex.get('rpe', '?')
-        rpe_color  = get_rpe_color(rpe_val)
+        weight_str = f"{weight}kg" if weight != '?' else 'BW'
+        rpe_color = get_rpe_color(rpe)
         st.markdown(f"""
         <div class="ex-card">
             <div class="ex-name">
-                {ex['name']}
+                {name}
                 <span class="ex-weight-tag">⚖️ {weight_str}</span>
             </div>
             <div class="ex-meta">
-                📊 {ex['sets']} sets &nbsp;·&nbsp; 🔁 {ex['reps']} reps &nbsp;·&nbsp;
-                <span style="color:{rpe_color};font-weight:600;">RPE {rpe_val}</span>
+                📊 {sets} sets &nbsp;·&nbsp; 🔁 {reps} reps &nbsp;·&nbsp;
+                <span style="color:{rpe_color};font-weight:600;">RPE {rpe}</span>
             </div>
-            <div class="ex-note">💡 {ex['note']}</div>
+            <div class="ex-note">💡 {note if note else 'Training exercise'}</div>
         </div>
         """, unsafe_allow_html=True)
     with c2:
-        relevant = [t for t in GLOSSARY if t in f"{ex['name']} {ex['note']} rpe sets reps".lower()]
+        relevant = [t for t in GLOSSARY if t in f"{name} {note} rpe sets reps".lower()]
         if relevant:
             with st.popover("📖"):
                 st.markdown("**Quick Glossary**")
@@ -207,45 +215,81 @@ def show_dashboard(user, plan_row, log):
     # ── Tab 2: Full Program ──
     with tab2:
         st.subheader("📋 Your Full 4-Week Program")
-        for week in plan["weeks"]:
-            st.subheader(f"Week {week['week']} — {week['focus']}")
-            for day in week["days"]:
-                with st.expander(f"📅 {day['label']}"):
-                    for ex in day["exercises"]:
-                        weight_str = ex.get('weight', 'BW')
-                        st.markdown(f"""
-                        <div class="ex-card">
-                            <div class="ex-name">{ex['name']} <span class="ex-weight-tag">⚖️ {weight_str}</span></div>
-                            <div class="ex-meta">📊 {ex['sets']} × {ex['reps']} · <span style="color:{get_rpe_color(ex.get('rpe','7'))};font-weight:600;">RPE {ex.get('rpe','?')}</span></div>
-                            <div class="ex-note">💡 {ex['note']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+        weeks = plan.get("weeks", [])
+        
+        for week in weeks:
+            st.subheader(f"Week {week.get('week', '?')} — {week.get('focus', '?')}")
+            days_list = week.get("days", [])
+            
+            for day in days_list:
+                with st.expander(f"📅 {day.get('label', 'Day')}"):
+                    exercises = day.get("exercises", [])
+                    
+                    if not exercises:
+                        st.info("No exercises for this day")
+                    else:
+                        for ex in exercises:
+                            show_exercise(ex)
             st.divider()
 
     # ── Tab 3: Diet Plan ──
+    # ── Tab 3: Diet Plan ──
     with tab3:
-        diet = plan["diet"]
-        st.subheader("🍽️ Your Daily Indian Diet Plan")
-        # Two rows of 2 metrics — avoids 4-column squeeze on mobile
+        diet = plan.get("diet", {})
+        meal_alts = diet.get("meal_alternatives", {})
+        
+        st.subheader("🍽️ Your Daily Diet Plan")
+        
+        # Show macro targets
         d_r1c1, d_r1c2 = st.columns(2)
         d_r2c1, d_r2c2 = st.columns(2)
-        d_r1c1.metric("🔥 Calories", f"{diet['calories']} kcal")
-        d_r1c2.metric("🥩 Protein",  f"{diet['protein']}g")
-        d_r2c1.metric("🍚 Carbs",    f"{diet['carbs']}g")
-        d_r2c2.metric("🥑 Fats",     f"{diet['fats']}g")
+        d_r1c1.metric("🔥 Calories", f"{diet.get('calories', 0)} kcal")
+        d_r1c2.metric("🥩 Protein",  f"{diet.get('protein', 0)}g")
+        d_r2c1.metric("🍚 Carbs",    f"{diet.get('carbs', 0)}g")
+        d_r2c2.metric("🥑 Fats",     f"{diet.get('fats', 0)}g")
+        
+        # Show maintenance and TDEE
+        if diet.get('maintenance'):
+            st.caption(f"📊 Maintenance: {diet.get('maintenance')} kcal | TDEE: {diet.get('tdee')} kcal")
+        
         st.divider()
-        for meal in diet["meals"]:
-            with st.expander(f"🕐 {meal['time']} — {meal['name']}"):
-                st.markdown(f"**{meal['food']}**")
+        
+        # Display meals with alternatives
+        meals = diet.get("meals", [])
+        for meal in meals:
+            time = meal.get('time', '?')
+            name = meal.get('name', '?')
+            
+            with st.expander(f"🕐 {time} — {name}", expanded=False):
+                # Main meal
+                st.markdown(f"### {meal.get('food', 'N/A')}")
                 c1, c2, c3 = st.columns(3)
-                c1.metric("Protein", f"{meal['protein']}g")
-                c2.metric("Carbs",   f"{meal['carbs']}g")
-                c3.metric("Fats",    f"{meal['fats']}g")
+                c1.metric("Protein", f"{meal.get('protein', 0)}g")
+                c2.metric("Carbs",   f"{meal.get('carbs', 0)}g")
+                c3.metric("Fats",    f"{meal.get('fats', 0)}g")
+                
+                # Show alternatives
+                if meal_alts:
+                    st.markdown("---")
+                    st.markdown("**🔄 Alternative Options:**")
+                    
+                    # Find matching time slot in alternatives
+                    for alt_time, alt_options in meal_alts.items():
+                        if time in alt_time:
+                            for i, alt in enumerate(alt_options, 1):
+                                col1, col2 = st.columns([3, 1])
+                                with col1:
+                                    st.markdown(f"**Option {i}:** {alt['food']}")
+                                with col2:
+                                    st.caption(f"P:{alt['protein']}g | C:{alt['carbs']}g | F:{alt['fats']}g")
+                            break
 
     # ── Tab 4: Tips ──
     with tab4:
         st.subheader("💡 Coach's Tips")
-        for i, tip in enumerate(plan["tips"], 1):
+        tips = plan.get("tips", [])
+        
+        for i, tip in enumerate(tips, 1):
             st.info(f"💡 **Tip {i}:** {tip}")
 
     # ── Tab 5: Progress Dashboard ──
@@ -298,12 +342,19 @@ def show_dashboard(user, plan_row, log):
                 elif val < 0: return f'<span class="lift-pr-delta negative">▼ {val:.0f} kg</span>'
                 else:         return f'<span class="lift-pr-delta neutral">— no change</span>'
 
+            def lift_delta(series):
+                """Delta between first and last session where this lift was logged (>0)."""
+                s = series[series > 0]
+                if len(s) < 2:
+                    return 0.0
+                return float(s.iloc[-1] - s.iloc[0])
+
             sq_max  = safe_max(df["Squat"])
             bp_max  = safe_max(df["Bench"])
             dl_max  = safe_max(df["Deadlift"])
-            sq_d    = df["Squat"].iloc[-1]    - df["Squat"].iloc[0]
-            bp_d    = df["Bench"].iloc[-1]    - df["Bench"].iloc[0]
-            dl_d    = df["Deadlift"].iloc[-1] - df["Deadlift"].iloc[0]
+            sq_d    = lift_delta(df["Squat"])
+            bp_d    = lift_delta(df["Bench"])
+            dl_d    = lift_delta(df["Deadlift"])
             total_s = int(df["Score"].sum())
 
             c1, c2, c3, c4 = st.columns(4)
@@ -343,9 +394,7 @@ def show_dashboard(user, plan_row, log):
             st.markdown('<div class="chart-section"><div class="chart-title">💹 Strength Progression</div>', unsafe_allow_html=True)
             if has_lifts:
                 chart_df = lift_df.set_index("Date")
-                # Drop rows where all lifts are 0 (rest-day logs)
                 chart_df = chart_df[(chart_df > 0).any(axis=1)]
-                # Replace 0s with NaN so they don't drag the line to zero
                 chart_df = chart_df.replace(0, float("nan"))
                 st.line_chart(
                     chart_df,
@@ -377,7 +426,6 @@ def show_dashboard(user, plan_row, log):
             st.divider()
             st.markdown("### 📊 Full Session Log")
 
-            # Table header
             st.markdown("""
             <div class="session-table-row">
                 <span class="session-table-head">Date</span>
@@ -415,4 +463,4 @@ def show_dashboard(user, plan_row, log):
                             <strong style="color:#F97316">{row['Date']}</strong> — {row['Notes']}
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)

@@ -45,6 +45,10 @@ class PlanRepository:
         _require_user_id(user_id)
         if not isinstance(plan_data, dict):
             raise ValidationError("plan_data must be a dictionary.")
+
+        # Log structure for debugging
+        self._log_plan_structure(user_id, plan_data)
+
         try:
             supabase.table("plans").delete().eq("user_id", user_id).execute()
             supabase.table("plans").insert({
@@ -57,6 +61,40 @@ class PlanRepository:
         except Exception as exc:
             logger.error("save_plan failed for user %s: %s", user_id, exc)
             raise DatabaseError(f"save_plan failed: {exc}") from exc
+
+    @staticmethod
+    def _log_plan_structure(user_id: str, plan_data: dict) -> None:
+        """Log the week/day/exercise structure of the plan for debugging."""
+        try:
+            training = plan_data.get("training", {})
+            weeks = training.get("weeks", []) if isinstance(training, dict) else []
+            has_days = all(
+                isinstance(w.get("days"), list) and len(w.get("days", [])) > 0
+                for w in weeks
+                if isinstance(w, dict)
+            )
+            total_days = sum(
+                len(w.get("days", []))
+                for w in weeks
+                if isinstance(w, dict)
+            )
+            total_exercises = sum(
+                len(d.get("exercises", []))
+                for w in weeks if isinstance(w, dict)
+                for d in w.get("days", []) if isinstance(d, dict)
+            )
+            if not has_days:
+                logger.warning(
+                    "save_plan for user %s: plan missing days[] in some weeks — "
+                    "dashboard may not display correctly", user_id
+                )
+            else:
+                logger.info(
+                    "save_plan for user %s: structure OK — %d weeks, %d days, %d exercises",
+                    user_id, len(weeks), total_days, total_exercises,
+                )
+        except Exception as exc:  # pragma: no cover
+            logger.warning("save_plan structure check failed for user %s: %s", user_id, exc)
 
     def delete(self, user_id: str) -> None:
         """Delete active plan AND all session logs for this user."""

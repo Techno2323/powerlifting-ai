@@ -105,7 +105,8 @@ def generate_program(user_stats):
             raise ValueError(f"Invalid JSON from Gemini: {str(e)}")
         
         # ========== STEP 5: Validate response ==========
-        validated_data = validate_response(data)
+        training_days = user_stats.get("days", 3)
+        validated_data = validate_response(data, training_days=training_days)
         logger.info("✅ Response validated")
         
         return validated_data
@@ -119,88 +120,169 @@ def generate_program(user_stats):
         raise Exception(f"Error generating program: {str(e)}")
 
 
-def validate_response(data):
+def validate_response(data, training_days: int = 3):
     """
-    ✅ Validate and normalize Gemini response structure
-    
+    ✅ Validate and normalize Gemini response structure.
+    Ensures weeks[] -> days[] -> exercises[] hierarchy.
+
     Args:
         data (dict): Raw response from Gemini
-    
+        training_days (int): Number of training days per week (used for fallback)
+
     Returns:
         dict: Validated and normalized data
     """
-    
+
     logger.info("🔍 Validating response structure...")
-    
+
     if not isinstance(data, dict):
         logger.error("❌ Response is not a dictionary")
         raise ValueError("Response must be a dictionary")
-    
+
     # ========== VALIDATE TRAINING ==========
-    if "training" not in data:
-        logger.warning("⚠️ 'training' key missing, creating default")
+    if "training" not in data or not isinstance(data.get("training"), dict):
+        logger.warning("⚠️ 'training' key missing or invalid, creating default")
         data["training"] = {}
-    
-    if not isinstance(data.get("training"), dict):
-        logger.warning("⚠️ 'training' is not dict, resetting")
-        data["training"] = {}
-    
-    # Ensure training has weeks
-    if "weeks" not in data.get("training", {}):
+
+    if "weeks" not in data["training"] or not isinstance(data["training"].get("weeks"), list):
         logger.warning("⚠️ 'weeks' key missing in training")
         data["training"]["weeks"] = []
-    
+
+    # ========== ENSURE days[] STRUCTURE INSIDE EACH WEEK ==========
+    _normalize_weeks(data["training"]["weeks"], training_days)
+
     # ========== VALIDATE DIET ==========
-    if "diet" not in data:
-        logger.warning("⚠️ 'diet' key missing, creating default")
+    if "diet" not in data or not isinstance(data.get("diet"), dict):
+        logger.warning("⚠️ 'diet' key missing or invalid, creating default")
         data["diet"] = {}
-    
-    if not isinstance(data.get("diet"), dict):
-        logger.warning("⚠️ 'diet' is not dict, resetting")
-        data["diet"] = {}
-    
-    # Ensure diet has meals
-    if "meals" not in data.get("diet", {}):
+
+    if "meals" not in data["diet"] or not isinstance(data["diet"].get("meals"), list):
         logger.warning("⚠️ 'meals' key missing in diet")
         data["diet"]["meals"] = []
-    
+
     # ========== VALIDATE TIPS ==========
-    if "tips" not in data:
-        logger.warning("⚠️ 'tips' key missing, creating default")
+    if "tips" not in data or not isinstance(data.get("tips"), list):
+        logger.warning("⚠️ 'tips' key missing or invalid, resetting")
         data["tips"] = []
-    
-    if not isinstance(data.get("tips"), list):
-        logger.warning("⚠️ 'tips' is not list, resetting")
-        data["tips"] = []
-    
-    # Ensure we have at least 5 tips
-    if len(data["tips"]) < 5:
-        logger.warning(f"⚠️ Only {len(data['tips'])} tips, filling to 5")
-        default_tips = [
-            "Stay consistent with your training schedule.",
-            "Track your progress weekly and adjust intensity as needed.",
-            "Prioritize proper form over heavy weight.",
-            "Get adequate sleep for recovery.",
-            "Listen to your body and take rest days when needed."
-        ]
-        while len(data["tips"]) < 5:
-            data["tips"].append(default_tips[len(data["tips"])])
-    
+
+    default_tips = [
+        "Stay consistent with your training schedule.",
+        "Track your progress weekly and adjust intensity as needed.",
+        "Prioritize proper form over heavy weight.",
+        "Get adequate sleep for recovery.",
+        "Listen to your body and take rest days when needed.",
+    ]
+    while len(data["tips"]) < 5:
+        data["tips"].append(default_tips[len(data["tips"])])
+
     # ========== VALIDATE DIET NUMBERS ==========
-    diet_keys = ["calories", "protein", "carbs", "fats", "maintenance", "tdee"]
-    for key in diet_keys:
-        if key not in data.get("diet", {}):
+    for key in ["calories", "protein", "carbs", "fats", "maintenance", "tdee"]:
+        if key not in data["diet"]:
             logger.warning(f"⚠️ Diet missing '{key}', setting to 0")
-            if "diet" not in data:
-                data["diet"] = {}
             data["diet"][key] = 0
-    
-    logger.info(f"✅ Validation complete:")
-    logger.info(f"   - Training weeks: {len(data.get('training', {}).get('weeks', []))}")
-    logger.info(f"   - Diet meals: {len(data.get('diet', {}).get('meals', []))}")
-    logger.info(f"   - Tips: {len(data.get('tips', []))}")
-    
+
+    total_days = sum(len(w.get("days", [])) for w in data["training"]["weeks"])
+    logger.info(
+        "✅ Validation complete: weeks=%d total_days=%d diet_meals=%d tips=%d",
+        len(data["training"]["weeks"]),
+        total_days,
+        len(data["diet"]["meals"]),
+        len(data["tips"]),
+    )
+
     return data
+
+
+def _normalize_weeks(weeks: list, training_days: int) -> None:
+    """
+    Ensure every week in *weeks* has a proper days[] -> exercises[] structure.
+    If a week has a flat 'exercises' list instead of 'days', the exercises are
+    distributed evenly across *training_days* synthetic days.
+    If a week already has days but some are empty, fallback exercises are added.
+    """
+    _fallback_exercises = [
+        {"name": "Back Squat",   "sets": 3, "reps": "5", "weight": 60,  "rpe": 6, "note": "Focus on depth and bracing"},
+        {"name": "Bench Press",  "sets": 3, "reps": "5", "weight": 50,  "rpe": 6, "note": "Retract shoulder blades"},
+        {"name": "Deadlift",     "sets": 3, "reps": "5", "weight": 80,  "rpe": 6, "note": "Neutral spine throughout"},
+        {"name": "Leg Press",    "sets": 3, "reps": "8", "weight": 100, "rpe": 6, "note": "Full range of motion"},
+        {"name": "Dumbbell Row", "sets": 3, "reps": "8", "weight": 20,  "rpe": 6, "note": "Control the eccentric"},
+    ]
+
+    for idx, week in enumerate(weeks):
+        if not isinstance(week, dict):
+            logger.warning("⚠️ Week %d is not a dict, skipping", idx + 1)
+            continue
+
+        days_list = week.get("days")
+
+        # Case 1: flat exercises[] instead of days[] — distribute across days
+        if not isinstance(days_list, list) or not days_list:
+            flat_exercises = week.get("exercises")
+            if isinstance(flat_exercises, list) and flat_exercises:
+                logger.warning(
+                    "⚠️ Week %d has flat exercises[]. Distributing %d exercises across %d days.",
+                    week.get("week", idx + 1), len(flat_exercises), training_days,
+                )
+                days_list = _distribute_exercises(flat_exercises, training_days, week.get("week", idx + 1))
+            else:
+                logger.warning(
+                    "⚠️ Week %d has no days[] and no exercises[]. Creating %d fallback days.",
+                    week.get("week", idx + 1), training_days,
+                )
+                days_list = _make_fallback_days(_fallback_exercises, training_days, week.get("week", idx + 1))
+
+            week["days"] = days_list
+            week.pop("exercises", None)
+
+        # Case 2: days exist but some are empty or missing exercises
+        for day in days_list:
+            if not isinstance(day, dict):
+                continue
+            if not isinstance(day.get("exercises"), list) or not day["exercises"]:
+                logger.warning(
+                    "⚠️ Week %d Day %s has no exercises. Adding fallback.",
+                    week.get("week", idx + 1), day.get("day_number", "?"),
+                )
+                day["exercises"] = list(_fallback_exercises[:4])
+
+        # Ensure day_number is present on every day
+        for d_idx, day in enumerate(days_list, 1):
+            if isinstance(day, dict) and "day_number" not in day:
+                day["day_number"] = d_idx
+
+        week["days"] = days_list
+
+
+def _distribute_exercises(exercises: list, training_days: int, week_num: int) -> list:
+    """Split a flat exercises list into *training_days* day buckets."""
+    days = []
+    per_day = max(1, len(exercises) // training_days)
+    for d in range(training_days):
+        start = d * per_day
+        end = start + per_day if d < training_days - 1 else len(exercises)
+        day_exercises = exercises[start:end]
+        # If this bucket is empty (can happen when len(exercises) < training_days),
+        # cycle through the exercise list rather than repeating the same first 4.
+        if not day_exercises:
+            day_exercises = [exercises[d % len(exercises)]]
+        days.append({
+            "day_number": d + 1,
+            "label": f"Day {d + 1}",
+            "exercises": day_exercises,
+        })
+    return days
+
+
+def _make_fallback_days(fallback_exercises: list, training_days: int, week_num: int) -> list:
+    """Create *training_days* days each loaded with fallback exercises."""
+    return [
+        {
+            "day_number": d + 1,
+            "label": f"Day {d + 1}",
+            "exercises": list(fallback_exercises[:4]),
+        }
+        for d in range(training_days)
+    ]
 
 
 def calculate_weak_point(squat, bench, deadlift, bodyweight):

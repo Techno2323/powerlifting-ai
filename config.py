@@ -4,16 +4,36 @@ All settings in one place - easy to manage
 """
 
 import os
+import warnings
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # ========== GEMINI API CONFIG ==========
+USE_GEMINI = True
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")  # ✅ FIXED
-GEMINI_MAX_TOKENS = 2000
-GEMINI_TEMPERATURE = 0.7
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+try:
+    GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "6000"))
+except ValueError:
+    warnings.warn(
+        f"⚠️ Invalid GEMINI_MAX_TOKENS value '{os.getenv('GEMINI_MAX_TOKENS')}'. Using default 6000.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    GEMINI_MAX_TOKENS = 6000
+
+try:
+    GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.4"))
+except ValueError:
+    warnings.warn(
+        f"⚠️ Invalid GEMINI_TEMPERATURE value '{os.getenv('GEMINI_TEMPERATURE')}'. Using default 0.4.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    GEMINI_TEMPERATURE = 0.4
 
 # ========== SUPABASE CONFIG ==========
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -72,7 +92,15 @@ SQUAT_DL_RATIO_THRESHOLD = 0.75  # If squat/DL < 0.75, weak point = squat
 
 # ========== VALIDATION ==========
 if not GEMINI_API_KEY:
-    raise ValueError("❌ GEMINI_API_KEY not found in .env file!")
+    warnings.warn(
+        "⚠️ GEMINI_API_KEY not found. AI features will be unavailable until it is set.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("❌ SUPABASE credentials not found in .env file!")
+    warnings.warn(
+        "⚠️ SUPABASE credentials not found. Database features will be unavailable until they are set.",
+        RuntimeWarning,
+        stacklevel=2,
+    )

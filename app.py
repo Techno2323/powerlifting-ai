@@ -1,6 +1,5 @@
 # app.py (updated)
 import streamlit as st
-import google.generativeai as genai
 from auth import get_user
 from ui.styles import load_css
 from ui.landing import show_landing
@@ -8,8 +7,6 @@ from ui.login import show_login
 from ui.dashboard import show_dashboard
 from ui.generate import show_generate
 from database import load_plan, load_logs
-
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 st.set_page_config(
     page_title="IRONIQ — Indian Powerlifting AI",

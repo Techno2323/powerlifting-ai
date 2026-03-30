@@ -6,22 +6,137 @@ from database import save_plan
 from prompts import get_coaching_prompt
 from json_builder import expand_minimal_json
 from diet_builder import generate_diet_plan
-from config import GROQ_API_KEY, GROQ_MODEL, GROQ_MAX_TOKENS, GROQ_TEMPERATURE
+from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MAX_TOKENS, GEMINI_TEMPERATURE, GEMINI_TOP_P
+import google.generativeai as genai
 
-def clean_json_response(raw_text):
-    """Clean AI response"""
-    raw_text = raw_text.strip()
-    if raw_text.startswith("```"):
-        match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw_text, re.DOTALL)
-        if match:
-            raw_text = match.group(1).strip()
-    brace_index = raw_text.find('{')
-    if brace_index > 0:
-        raw_text = raw_text[brace_index:]
-    last_brace = raw_text.rfind('}')
-    if last_brace != -1:
-        raw_text = raw_text[:last_brace + 1]
-    return raw_text.strip()
+genai.configure(api_key=GEMINI_API_KEY)
+
+
+def extract_and_parse_json(raw_text: str) -> dict:
+    """
+    Robustly extract JSON from Gemini response with truncation recovery.
+    Handles:
+    - Markdown code fences (```json ... ```)
+    - Trailing text after JSON closes
+    - Incomplete/truncated responses
+    - Auto-closing incomplete JSON structures
+    
+    Returns: parsed dict or raises ValueError with preview.
+    """
+    if not raw_text or not raw_text.strip():
+        raise ValueError("Empty response from AI: contents must not be empty. Try again or adjust your athlete profile.")
+    
+    # Remove markdown code fences
+    text = re.sub(r'```(?:json)?\s*\n?', '', raw_text).strip()
+    text = re.sub(r'\n```\s*$', '', text).strip()
+    
+    # Find the first { and last }
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    
+    if start_idx == -1 or end_idx == -1 or end_idx <= start_idx:
+        preview = text[:200] if len(text) > 200 else text
+        raise ValueError(
+            f"No valid JSON object found in response.\n"
+            f"Response preview: {preview}\n"
+            f"Ensure the AI response contains a complete JSON object."
+        )
+    
+    json_str = text[start_idx:end_idx+1]
+    
+    try:
+        parsed = json.loads(json_str)
+        return parsed
+    except json.JSONDecodeError as e:
+        # Try to recover from truncation by auto-closing structures
+        st.warning(f"⚠️ JSON truncation detected at position {e.pos}. Attempting recovery...")
+        
+        recovery_attempts = [
+            # Attempt 1: Close all open arrays and objects
+            lambda s: s + "]" * s.count("[") + "}" * s.count("{"),
+            # Attempt 2: Find last complete array/object and close from there
+            lambda s: _recover_truncated_json(s),
+        ]
+        
+        for attempt_fn in recovery_attempts:
+            try:
+                recovered = attempt_fn(json_str)
+                parsed = json.loads(recovered)
+                st.info(f"✅ JSON recovered successfully (auto-closed incomplete structure)")
+                return parsed
+            except json.JSONDecodeError:
+                continue
+        
+        # All recovery attempts failed
+        preview = json_str[:300] if len(json_str) > 300 else json_str
+        raise ValueError(
+            f"Invalid JSON syntax at position {e.pos}.\n"
+            f"Error: {e.msg}\n"
+            f"JSON preview: {preview}\n"
+            f"The response may be incomplete. Try regenerating with a simpler athlete profile or fewer days/week."
+        )
+
+
+def _recover_truncated_json(json_str: str) -> str:
+    """
+    Attempt to recover truncated JSON by finding last complete object/array
+    and closing all open structures.
+    """
+    # Count open/close brackets
+    open_braces = json_str.count('{') - json_str.count('}')
+    open_brackets = json_str.count('[') - json_str.count(']')
+    
+    # Add closing brackets
+    recovered = json_str + '}' * open_braces + ']' * open_brackets
+    return recovered
+
+
+def normalize_plan_schema(data: dict, training_days: int) -> dict:
+    """
+    Normalize generated plan to match dashboard expectations.
+    Maps nested "program.weeks" -> top-level "weeks".
+    Ensures required keys exist.
+    
+    Returns: normalized plan_data dict.
+    """
+    # Unnest if AI returned nested structure
+    if isinstance(data.get("program"), dict) and "weeks" in data["program"]:
+        program = data.pop("program")
+        data["weeks"] = program.get("weeks", [])
+        if "diet" not in data:
+            data["diet"] = program.get("diet", {})
+        if "tips" not in data:
+            data["tips"] = program.get("tips", [])
+    
+    # Ensure required top-level keys
+    if "weeks" not in data or not isinstance(data.get("weeks"), list):
+        raise ValueError("Plan missing 'weeks' list. Generated plan is invalid.")
+    
+    if not data["weeks"]:
+        raise ValueError("Plan has zero weeks. Generated plan is empty.")
+    
+    if "diet" not in data:
+        data["diet"] = {}
+    
+    if "tips" not in data:
+        data["tips"] = []
+    
+    # Validate weeks structure (allow partial if truncated)
+    for week in data["weeks"]:
+        if "days" not in week or not isinstance(week.get("days"), list):
+            # If weeks exist but no days, create empty day placeholder
+            if "days" not in week:
+                week["days"] = []
+        if not week.get("days", []):
+            # Warn but allow (better than crashing)
+            st.warning(f"⚠️ Week {week.get('week', '?')} has no days (may be truncated)")
+    
+    # Add metadata
+    data["training_days"] = training_days
+    data["start_date"] = str(date.today())
+    
+    return data
+
 
 def show_generate(user_id):
     st.markdown("""
@@ -91,7 +206,7 @@ def show_generate(user_id):
             st.stop()
 
         # ============================================================
-        # STEP 1: Generate training plan from Groq AI
+        # STEP 1: Generate training plan from Gemini AI
         # ============================================================
         with st.spinner("🔥 AI Coach is designing your personalized program..."):
             try:
@@ -109,116 +224,56 @@ def show_generate(user_id):
                     activity=activity
                 )
 
-                # Call Groq API
-                from groq import Groq
-                
-                client = Groq(api_key=GROQ_API_KEY)
-                response = client.chat.completions.create(
-                    model=GROQ_MODEL,
-                    messages=[
+                # Call Gemini API with optimized settings for streaming
+                model = genai.GenerativeModel(GEMINI_MODEL)
+                response = model.generate_content(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=GEMINI_TEMPERATURE,
+                        top_p=GEMINI_TOP_P,
+                        max_output_tokens=GEMINI_MAX_TOKENS,
+                    ),
+                    safety_settings=[
                         {
-                            "role": "system",
-                            "content": "Return ONLY valid JSON. No markdown, no backticks."
+                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                            "threshold": "BLOCK_NONE",
                         },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    temperature=GROQ_TEMPERATURE,
-                    max_tokens=GROQ_MAX_TOKENS,
+                    ]
                 )
                 
-                raw = response.choices[0].message.content.strip()
-                cleaned = clean_json_response(raw)
+                raw = response.text.strip() if response.text else ""
                 
-                # Parse training plan JSON
-                data = json.loads(cleaned)
+                if not raw:
+                    raise ValueError("Gemini returned empty response. Try again with different inputs.")
                 
                 # ============================================================
-                # STEP 2: Expand training plan with exercises
+                # STEP 2: Extract and parse JSON robustly
+                # ============================================================
+                data = extract_and_parse_json(raw)
+                
+                # ============================================================
+                # STEP 3: Normalize schema
+                # ============================================================
+                data = normalize_plan_schema(data, int(days))
+                
+                # ============================================================
+                # STEP 4: Expand training plan with exercises
                 # ============================================================
                 data = expand_minimal_json(data, int(days))
 
-                if not isinstance(data, dict) or not data.get("weeks"):
-                    raise ValueError("Generated plan is missing training weeks. Please try again.")
-
-                if not isinstance(data.get("diet"), dict):
-                    data["diet"] = {}
-                
                 # ============================================================
-                # STEP 3: Calculate calorie needs
+                # STEP 5: Generate diet plan
                 # ============================================================
-                # Mifflin-St Jeor equation for maintenance
-                maintenance = (10 * int(bodyweight)) + (6.25 * int(height)) - (5 * int(age)) + 5
-                
-                # Apply activity level multiplier
-                activity_multipliers = {
-                    "Sedentary": 1.2,
-                    "Light": 1.375,
-                    "Moderate": 1.55,
-                    "Very Active": 1.725
-                }
-                
-                tdee = maintenance * activity_multipliers.get(activity, 1.55)
-                
-                # Adjust for goal
-                if goal == "Build Strength":
-                    calories = int(tdee + 300)  # +300 cal surplus
-                elif goal == "Bulk":
-                    calories = int(tdee + 500)  # +500 cal surplus
-                else:  # Cut
-                    calories = int(tdee - 500)  # -500 cal deficit
-                
-                # Calculate macros
-                protein = int(int(bodyweight) * 2.2)
-                carbs = int(int(bodyweight) * 5.5)
-                fats = int(int(bodyweight) * 1.1)
-                
-                # ============================================================
-                # STEP 4: Generate personalized diet with alternatives
-                # ============================================================
-                selected_meals, meal_macros, meal_alternatives = generate_diet_plan(
+                diet_data = generate_diet_plan(
                     bodyweight=int(bodyweight),
-                    height=int(height),
-                    age=int(age),
                     goal=goal,
-                    food_type=food,
-                    calories=calories,
-                    protein=protein,
-                    carbs=carbs,
-                    fats=fats
+                    diet_type=food,
+                    data=data
                 )
-                
-                # Convert selected meals to list format for storage
-                meals_list = []
-                for time, meal in selected_meals.items():
-                    meal_copy = meal.copy()
-                    time_parts = time.split(" ")
-                    meal_copy["time"] = f"{time_parts[0]} {time_parts[1]}"
-                    meal_copy["name"] = " ".join(time_parts[2:])
-                    meals_list.append(meal_copy)
+                data["diet"] = diet_data
                 
                 # ============================================================
-                # STEP 5: Update diet data in plan
-                # ============================================================
-                data["diet"]["meals"] = meals_list
-                data["diet"]["calories"] = calories
-                data["diet"]["protein"] = protein
-                data["diet"]["carbs"] = carbs
-                data["diet"]["fats"] = fats
-                data["diet"]["maintenance"] = int(maintenance)
-                data["diet"]["tdee"] = int(tdee)
-                data["diet"]["meal_alternatives"] = meal_alternatives
-                
-                # ============================================================
-                # STEP 6: Add program metadata
-                # ============================================================
-                data["start_date"] = str(date.today())
-                data["training_days"] = int(days)
-                
-                # ============================================================
-                # STEP 7: Save complete plan to database
+                # STEP 6: Save complete plan to database
                 # ============================================================
                 save_plan(user_id, data)
                 
@@ -228,15 +283,28 @@ def show_generate(user_id):
                 time.sleep(1)
                 st.rerun()
                 
+            except ValueError as e:
+                st.error(f"❌ Invalid plan generated: {str(e)}")
+                with st.expander("📋 Troubleshooting"):
+                    st.write("This might happen if:")
+                    st.write("- The AI response was incomplete or truncated")
+                    st.write("- The prompt was too complex for Gemini 2.5 Flash Lite")
+                    st.write("- Your athlete profile has extreme values")
+                    st.write("\n**Try one of these:**")
+                    st.write("1. Reduce training days/week (e.g., try 3 instead of 6)")
+                    st.write("2. Use rounder numbers for lifts/bodyweight")
+                    st.write("3. Wait a moment and try again (rate limiting)")
+                    st.write("4. Contact support if this persists")
             except json.JSONDecodeError as e:
-                st.error("❌ Failed to parse plan - Invalid JSON response")
+                st.error("❌ Failed to parse AI response as JSON")
                 with st.expander("📋 Error Details"):
-                    st.write(f"**Error:** {str(e)}")
-                    st.write("This might be because:")
-                    st.write("- The AI response was incomplete")
-                    st.write("- The prompt was too complex")
-                    st.write("Try again or adjust your inputs")
+                    st.write(f"**JSON Error:** {str(e)}")
+                    st.write("The AI response was truncated or malformed. Try regenerating.")
             except Exception as e:
                 st.error(f"❌ Error generating plan: {str(e)}")
-                with st.expander("📋 Error Details"):
-                    st.write(str(e))
+                with st.expander("📋 Technical Details"):
+                    st.write(f"**Exception:** {type(e).__name__}")
+                    st.write(f"**Message:** {str(e)}")
+                    st.write("If this persists, try:")
+                    st.write("- Simpler athlete profile (fewer days, rounder numbers)")
+                    st.write("- Contact support with this error message")

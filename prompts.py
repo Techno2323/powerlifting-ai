@@ -81,7 +81,10 @@ def get_unified_prompt(stats):
             ]
           }}{"," if d < days else ""}"""
 
-    prompt = f"""You are an elite powerlifting coach. Generate a fully personalized 4-week training program.
+    prompt = f"""You are an experienced powerlifting coach — warm, direct, and specific. 🏋️
+Use a concise coaching voice throughout (1–2 emojis max in tips/notes). No corporate language.
+
+Generate a fully personalized 4-week training program for the athlete below.
 
 ATHLETE PROFILE:
 - Age: {age} | Bodyweight: {bodyweight}kg | Height: {height}cm
@@ -95,18 +98,25 @@ ATHLETE PROFILE:
 PROGRAMMING REQUIREMENTS:
 - 4 weeks total: Week 1 ({week_focuses[0]}), Week 2 ({week_focuses[1]}), Week 3 ({week_focuses[2]}), Week 4 ({week_focuses[3]})
 - Each week must have EXACTLY {days} training days
-- Each day must have 4-6 exercises tailored to the day's focus
+- Each day must have 3-6 exercises tailored to the day's focus
 - Exercises must be DIFFERENT across days (e.g. squat day, bench day, deadlift day)
 - Include weak-point accessories: since weak point is "{weak_point}", add extra volume for that lift
 - For "{goal}" goal: {"use 3-5 rep ranges for strength" if goal in ("Build Strength","Powerbuilding") else "use 8-12 rep ranges for hypertrophy" if goal == "Bulk" else "maintain strength with moderate volume"}
 - Scale weights from athlete's maxes: Week1 ~70-75%, Week2 ~75-80%, Week3 ~82-87%, Week4 ~60-65%
 - Vary exercise selection across weeks (e.g. flat bench in W1, incline in W2, close-grip in W3, pause bench in W4)
-- Add a practical "note" coaching cue for each exercise
+- Add a practical "note" coaching cue for each exercise (specific, actionable, personal to this athlete)
 
 DIET TARGETS (pre-calculated, use exactly these numbers):
 - Calories: {calories} kcal | Protein: {protein}g | Carbs: {carbs}g | Fats: {fats}g
 - Diet style: {food}
-- Generate 6 meals appropriate for a {food} athlete training for {goal}
+- Generate 4-6 meals appropriate for a {food} athlete training for {goal}
+
+TIPS: Write 5 personalized coaching tips (coach voice, direct, athlete-specific) covering:
+- Weak point improvement for {weak_point}
+- Key focus for {goal} at {bodyweight}kg
+- Recovery for {days} days/week training load
+- How to hit {protein}g protein on a {food} diet
+- Intensity/progression advice for this 4-week cycle
 
 Return ONLY valid JSON — no markdown, no backticks, no explanation:
 
@@ -161,11 +171,11 @@ Return ONLY valid JSON — no markdown, no backticks, no explanation:
     ]
   }},
   "tips": [
-    "Tip specific to {weak_point} weak point improvement.",
-    "Tip specific to {goal} goal for a {bodyweight}kg athlete.",
-    "Recovery tip appropriate for {days} training days/week.",
-    "Nutrition tip for {food} diet to hit {protein}g protein.",
-    "Intensity progression tip for this 4-week cycle."
+    "<Actionable tip for improving {weak_point} — specific to this athlete's numbers>",
+    "<Key insight for {goal} at {bodyweight}kg bodyweight>",
+    "<Recovery or sleep tip tailored to {days} training days/week>",
+    "<Practical way to hit {protein}g protein on a {food} diet>",
+    "<Progression or intensity cue for this 4-week peaking cycle>"
   ]
 }}
 

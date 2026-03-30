@@ -6,7 +6,6 @@ Better JSON parsing and error handling
 
 import google.generativeai as genai
 import json
-import re
 import logging
 from config import *
 from prompts import get_unified_prompt
@@ -15,10 +14,13 @@ from prompts import get_unified_prompt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configure Gemini
+# Configure Gemini lazily so a missing key only fails at generation time, not import
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info(f"✅ Gemini configured with model: {GEMINI_MODEL}")
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        logger.info(f"✅ Gemini configured with model: {GEMINI_MODEL}")
+    else:
+        logger.warning("⚠️ GEMINI_API_KEY not set — AI generation will fail until it is provided.")
 except Exception as e:
     logger.error(f"❌ Failed to configure Gemini: {str(e)}")
     raise
@@ -75,22 +77,24 @@ def generate_program(user_stats):
         logger.info("✅ Got response from Gemini")
         
         # ========== STEP 3: Parse response ==========
-        response_text = response.text.strip()
+        # Prefer candidates[0].content.parts[0].text (Gemini SDK); fall back to response.text
+        try:
+            response_text = response.candidates[0].content.parts[0].text.strip()
+        except (AttributeError, IndexError):
+            response_text = response.text.strip()
         
         # Debug: Log first 300 chars
         logger.info(f"Response preview: {response_text[:300]}")
         
-        # Try to extract JSON
-        json_match = re.search(r'\{[\s\S]*\}', response_text)
-        
-        if not json_match:
-            logger.error(f"❌ No JSON found in response")
-            logger.error(f"Full response: {response_text}")
+        # Strip everything before the first '{' to remove markdown / prose preamble
+        brace_idx = response_text.find('{')
+        if brace_idx == -1:
+            logger.error(f"❌ No JSON found in response. Preview: {response_text[:500]}")
             raise ValueError("Gemini response doesn't contain valid JSON")
         
-        json_text = json_match.group()
+        json_text = response_text[brace_idx:]
         
-        # Clean up common issues
+        # Also strip any trailing code fence markers
         json_text = json_text.replace('```json', '').replace('```', '').strip()
         
         logger.info(f"✅ Extracted JSON (length: {len(json_text)} chars)")

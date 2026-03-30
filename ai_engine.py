@@ -77,11 +77,30 @@ def generate_program(user_stats):
         logger.info("✅ Got response from Gemini")
         
         # ========== STEP 3: Parse response ==========
-        # Prefer candidates[0].content.parts[0].text (Gemini SDK); fall back to response.text
+        response_text = ""
+
+        # Prefer candidates[0].content.parts[*].text (Gemini SDK); fall back to response.text
         try:
-            response_text = response.candidates[0].content.parts[0].text.strip()
-        except (AttributeError, IndexError):
-            response_text = response.text.strip()
+            if getattr(response, "candidates", None):
+                parts = response.candidates[0].content.parts
+                texts = [getattr(p, "text", "") for p in parts]
+                response_text = "".join(t for t in texts if t).strip()
+        except Exception:
+            response_text = ""
+
+        # Fallback to response.text
+        if not response_text:
+            try:
+                response_text = (response.text or "").strip()
+            except Exception:
+                response_text = ""
+
+        # Empty output guard
+        if not response_text:
+            logger.error("❌ Gemini returned empty content")
+            raise ValueError(
+                "Gemini returned empty content. Try again, or lower prompt size / output token needs."
+            )
         
         # Debug: Log first 300 chars
         logger.info(f"Response preview: {response_text[:300]}")
@@ -96,6 +115,14 @@ def generate_program(user_stats):
         
         # Also strip any trailing code fence markers
         json_text = json_text.replace('```json', '').replace('```', '').strip()
+
+        # Clip to the last closing brace to drop any trailing prose/fences
+        last_brace = json_text.rfind('}')
+        if last_brace != -1:
+            json_text = json_text[: last_brace + 1]
+
+        if not json_text.strip():
+            raise ValueError("Gemini JSON payload is empty after cleanup")
         
         logger.info(f"✅ Extracted JSON (length: {len(json_text)} chars)")
         

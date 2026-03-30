@@ -69,6 +69,7 @@ def _normalize_plan_weeks(plan):
 
     candidates = [
         plan,
+        plan.get("training"),
         plan.get("program"),
         plan.get("plan"),
         plan.get("training_plan"),
@@ -144,13 +145,22 @@ def show_dashboard(user, plan_row, log):
     today_session  = get_today_session(all_sessions, log)
     total_completed, total_sessions, overall_progress, total_score = calculate_progress(all_sessions, log)
 
+    # ── Guard: empty schedule means plan data is malformed ──
+    if total_sessions == 0:
+        st.error("⚠️ No training sessions found in your current plan. The plan data may be incomplete.")
+        if st.button("🔄 Regenerate Plan", use_container_width=True):
+            archive_plan(user_id, plan, log)
+            delete_plan(user_id)
+            st.rerun()
+        return
+
     current_week   = today_session["week"] if today_session else 4
     week_sessions  = [s for s in all_sessions if s["week"] == current_week]
     week_completed = len([s for s in week_sessions if log.get(s["session_id"], {}).get("completed")])
     week_progress  = int((week_completed / len(week_sessions)) * 100) if week_sessions else 0
 
     # ── Program Complete ──
-    if total_completed >= total_sessions:
+    if total_sessions > 0 and total_completed >= total_sessions:
         st.balloons()
         st.success("🏆 YOU COMPLETED YOUR 4-WEEK PROGRAM! ABSOLUTE BEAST MODE!")
         col1, col2, col3 = st.columns(3)

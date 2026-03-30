@@ -115,30 +115,40 @@ def show_generate(user_id):
             try:
                 # ✨ ONE CALL = EVERYTHING!
                 program_data = generate_program(user_stats)
-                
-                # Add metadata
-                program_data["start_date"] = str(date.today())
-                program_data["training_days"] = int(days)
-                program_data["user_stats"] = user_stats
-                
+
+                # Normalize AI output to dashboard-compatible flat structure
+                training = program_data.get("training", {}) if isinstance(program_data, dict) else {}
+                weeks = training.get("weeks", [])
+                diet = program_data.get("diet", {})
+                tips = program_data.get("tips", [])
+                normalized = {
+                    "summary": training.get("summary", ""),
+                    "goal": training.get("goal", goal),
+                    "training_days": int(days),
+                    "weeks": weeks if isinstance(weeks, list) else [],
+                    "diet": diet if isinstance(diet, dict) else {},
+                    "tips": tips if isinstance(tips, list) else [],
+                    "start_date": str(date.today()),
+                    "user_stats": user_stats,
+                }
+
                 # Save to database
-                save_plan(user_id, program_data)
+                save_plan(user_id, normalized)
 
                 st.success("✅ Plan generated successfully!")
                 st.balloons()
 
-                weeks = program_data.get("training", {}).get("weeks", [])
-                total_days = sum(len(w.get("days", [])) for w in weeks)
-                diet = program_data.get("diet", {})
+                total_days = sum(len(w.get("days", [])) for w in normalized["weeks"])
+                diet = normalized.get("diet", {})
                 st.info(
-                    f"📋 **Your program:** {len(weeks)} weeks · "
+                    f"📋 **Your program:** {len(normalized['weeks'])} weeks · "
                     f"{total_days} training sessions · "
                     f"{diet.get('calories', 0)} kcal/day"
                 )
 
                 # Show preview
                 with st.expander("📋 Program Preview"):
-                    st.json(program_data)
+                    st.json(normalized)
 
                 if st.button("🏠 Go to Dashboard", use_container_width=True):
                     st.rerun()

@@ -74,10 +74,10 @@ def get_unified_prompt(stats):
         day_schema_example += f"""
           {{
             "day_number": {d},
-            "label": "Day {d} - <focus label e.g. Squat Focus / Upper Body / Pull Day>",
+            "label": "Day {d} - Sample Focus",
             "exercises": [
-              {{"name": "<exercise name>", "sets": <int>, "reps": "<int or range>", "weight": <kg int>, "rpe": <1-10 int>, "note": "<brief coaching cue>"}},
-              {{"name": "<exercise name>", "sets": <int>, "reps": "<int or range>", "weight": <kg int>, "rpe": <1-10 int>, "note": "<brief coaching cue>"}}
+              {{"name": "Sample Exercise A", "sets": 4, "reps": "5", "weight": 80, "rpe": 7, "note": "Sample coaching cue"}},
+              {{"name": "Sample Exercise B", "sets": 3, "reps": "8", "weight": 50, "rpe": 6, "note": "Sample coaching cue"}}
             ]
           }}{"," if d < days else ""}"""
 
@@ -134,22 +134,19 @@ Return ONLY valid JSON — no markdown, no backticks, no explanation:
       {{
         "week": 2,
         "focus": "{week_focuses[1]}",
-        "days": [
-          {{ "day_number": 1, "label": "Day 1 - ...", "exercises": [...] }}
+        "days": [{day_schema_example}
         ]
       }},
       {{
         "week": 3,
         "focus": "{week_focuses[2]}",
-        "days": [
-          {{ "day_number": 1, "label": "Day 1 - ...", "exercises": [...] }}
+        "days": [{day_schema_example}
         ]
       }},
       {{
         "week": 4,
         "focus": "{week_focuses[3]}",
-        "days": [
-          {{ "day_number": 1, "label": "Day 1 - ...", "exercises": [...] }}
+        "days": [{day_schema_example}
         ]
       }}
     ]
@@ -162,20 +159,20 @@ Return ONLY valid JSON — no markdown, no backticks, no explanation:
     "maintenance": {int(maintenance)},
     "tdee": {int(tdee)},
     "meals": [
-      {{"time": "8:00 AM",  "name": "Breakfast",     "food": "<{food} breakfast>", "protein": 35, "carbs": 65, "fats": 15}},
-      {{"time": "11:00 AM", "name": "Mid-Morning",   "food": "<snack>",             "protein": 25, "carbs": 30, "fats": 10}},
-      {{"time": "1:30 PM",  "name": "Lunch",         "food": "<{food} lunch>",      "protein": 45, "carbs": 70, "fats": 10}},
-      {{"time": "4:00 PM",  "name": "Pre-Workout",   "food": "<pre-workout snack>", "protein": 15, "carbs": 40, "fats": 8}},
-      {{"time": "7:00 PM",  "name": "Post-Workout",  "food": "<{food} dinner>",     "protein": 40, "carbs": 60, "fats": 12}},
-      {{"time": "9:30 PM",  "name": "Evening",       "food": "<light snack>",       "protein": 25, "carbs": 30, "fats": 8}}
+      {{"time": "8:00 AM",  "name": "Breakfast",    "food": "Sample {food} breakfast", "protein": 35, "carbs": 65, "fats": 15}},
+      {{"time": "11:00 AM", "name": "Mid-Morning",  "food": "Sample snack",             "protein": 25, "carbs": 30, "fats": 10}},
+      {{"time": "1:30 PM",  "name": "Lunch",        "food": "Sample {food} lunch",      "protein": 45, "carbs": 70, "fats": 10}},
+      {{"time": "4:00 PM",  "name": "Pre-Workout",  "food": "Sample pre-workout meal",  "protein": 15, "carbs": 40, "fats": 8}},
+      {{"time": "7:00 PM",  "name": "Post-Workout", "food": "Sample {food} dinner",     "protein": 40, "carbs": 60, "fats": 12}},
+      {{"time": "9:30 PM",  "name": "Evening",      "food": "Sample light snack",       "protein": 25, "carbs": 30, "fats": 8}}
     ]
   }},
   "tips": [
-    "<Actionable tip for improving {weak_point} — specific to this athlete's numbers>",
-    "<Key insight for {goal} at {bodyweight}kg bodyweight>",
-    "<Recovery or sleep tip tailored to {days} training days/week>",
-    "<Practical way to hit {protein}g protein on a {food} diet>",
-    "<Progression or intensity cue for this 4-week peaking cycle>"
+    "Actionable tip for improving {weak_point} specific to this athlete",
+    "Key insight for {goal} at {bodyweight}kg bodyweight",
+    "Recovery tip tailored to {days} training days per week",
+    "Practical way to hit {protein}g protein on a {food} diet",
+    "Progression cue for this 4-week peaking cycle"
   ]
 }}
 

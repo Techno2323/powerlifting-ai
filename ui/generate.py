@@ -6,7 +6,7 @@ from database import save_plan
 from prompts import get_coaching_prompt
 from json_builder import expand_minimal_json
 from diet_builder import generate_diet_plan
-from config import GROQ_API_KEY, GROQ_MODEL, GROQ_MAX_TOKENS, GROQ_TEMPERATURE
+from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MAX_TOKENS, GEMINI_TEMPERATURE
 
 def clean_json_response(raw_text):
     """Clean AI response"""
@@ -54,13 +54,15 @@ def show_generate(user_id):
         with col3:
             deadlift = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
 
-        col4, col5, col6 = st.columns(3)
+        col4, col5, col6, col_g = st.columns(4)
         with col4:
             bodyweight = st.number_input("⚖️ Bodyweight (kg)", min_value=0)
         with col5:
             height = st.number_input("📏 Height (cm)", min_value=100, max_value=220)
         with col6:
             age = st.number_input("🎂 Age", min_value=10, max_value=80)
+        with col_g:
+            gender = st.selectbox("🚻 Gender", ["Male", "Female"])
 
         col7, col8 = st.columns(2)
         with col7:
@@ -95,45 +97,74 @@ def show_generate(user_id):
         # ============================================================
         with st.spinner("🔥 AI Coach is designing your personalized program..."):
             try:
-                # Generate prompt for training plan
-                prompt = get_coaching_prompt(
-                    squat=int(squat),
-                    bench=int(bench),
-                    deadlift=int(deadlift),
-                    bodyweight=int(bodyweight),
-                    height=int(height),
-                    age=int(age),
-                    goal=goal,
-                    days=int(days),
-                    food=food,
-                    activity=activity
-                )
-
-                # Call Groq API
-                from groq import Groq
+                import google.generativeai as genai
+                from google.generativeai.types import GenerationConfig
                 
-                client = Groq(api_key=GROQ_API_KEY)
-                response = client.chat.completions.create(
-                    model=GROQ_MODEL,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "Return ONLY valid JSON. No markdown, no backticks."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel(model_name=GEMINI_MODEL)
+                
+                # ============================================================
+                # NEW MULTI-PHASE GENERATION ARCHITECTURE to bypass token caps
+                # ============================================================
+                weeks_data = []
+                base_data = {}
+                
+                progress_bar = st.progress(0, text="Initializing Coach AI...")
+                
+                for w in range(1, 5):
+                    progress_bar.progress(w * 25, text=f"Designing Week {w} of 4...")
+                    
+                    prompt = get_coaching_prompt(
+                        squat=int(squat), bench=int(bench), deadlift=int(deadlift),
+                        bodyweight=int(bodyweight), height=int(height), age=int(age),
+                        gender=gender, goal=goal, days=int(days), food=food, activity=activity,
+                        target_week=w
+                    )
+                    
+                    response = model.generate_content(
+                        prompt,
+                        generation_config=GenerationConfig(
+                            temperature=GEMINI_TEMPERATURE,
+                            max_output_tokens=8192
+                        )
+                    )
+                    
+                    raw = response.text.strip()
+                    cleaned = clean_json_response(raw)
+                    if not cleaned:
+                        raise ValueError(f"Empty or invalid response from AI on week {w}.")
+                        
+                    week_json = json.loads(cleaned)
+                    
+                    if w == 1:
+                        # Extract root keys
+                        base_data = {
+                            "summary": week_json.get("summary", "4-Week Powerlifting Program"),
+                            "goal": week_json.get("goal", goal),
+                            "training_days": int(days),
+                            "weak_point": week_json.get("weak_point", "balanced"),
+                            "diet": week_json.get("diet", {}),
+                            "tips": week_json.get("tips", [])
                         }
-                    ],
-                    temperature=GROQ_TEMPERATURE,
-                    max_tokens=GROQ_MAX_TOKENS,
-                )
+                    
+                    # Store week separately
+                    week_obj = {
+                        "week": w,
+                        "focus": week_json.get("focus", f"Week {w} Training")
+                    }
+                    
+                    # Grab dayX_ex arrays logically
+                    for i in range(1, int(days) + 1):
+                        day_key = f"day{i}_ex"
+                        week_obj[day_key] = week_json.get(day_key, [])
+                        
+                    weeks_data.append(week_obj)
+                    
+                progress_bar.empty()
                 
-                raw = response.choices[0].message.content.strip()
-                cleaned = clean_json_response(raw)
-                
-                # Parse training plan JSON
-                data = json.loads(cleaned)
+                # Reconstruct full object to feed to json_builder pipeline
+                data = base_data.copy()
+                data["weeks"] = weeks_data
                 
                 # ============================================================
                 # STEP 2: Expand training plan with exercises
@@ -232,6 +263,13 @@ def show_generate(user_id):
                 st.error("❌ Failed to parse plan - Invalid JSON response")
                 with st.expander("📋 Error Details"):
                     st.write(f"**Error:** {str(e)}")
+                    try:
+                        finish_reason = response.candidates[0].finish_reason.name
+                        st.write(f"**Finish Reason:** {finish_reason} (If MAX_TOKENS, the AI hit the generation length limit)")
+                    except Exception:
+                        pass
+                    st.write("**Raw Generated Source:**")
+                    st.code(raw, language="json")
                     st.write("This might be because:")
                     st.write("- The AI response was incomplete")
                     st.write("- The prompt was too complex")

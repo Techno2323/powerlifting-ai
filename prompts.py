@@ -1,13 +1,18 @@
 """
-Powerlifting AI Coach - Fixed Prompt for Groq
+Powerlifting AI Coach - Dynamic Gemini Prompt
 """
+import json
 
-def get_coaching_prompt(squat, bench, deadlift, bodyweight, height, age, goal, days, food, activity):
-    """Generate training program - FIXED JSON"""
+def get_coaching_prompt(squat, bench, deadlift, bodyweight, height, age, gender, goal, days, food, activity, target_week=1):
+    """Generate training program - Dynamic JSON for Gemini"""
     
     # Calculate maintenance calories
-    maintenance = (10 * bodyweight) + (6.25 * height) - (5 * age) + 5
-    
+    # Mifflin-St Jeor equation factoring in gender
+    if gender.lower() == "male":
+        maintenance = (10 * bodyweight) + (6.25 * height) - (5 * age) + 5
+    else:
+        maintenance = (10 * bodyweight) + (6.25 * height) - (5 * age) - 161
+        
     activity_multipliers = {"Sedentary": 1.2, "Light": 1.375, "Moderate": 1.55, "Very Active": 1.725}
     tdee = maintenance * activity_multipliers.get(activity, 1.55)
     
@@ -22,222 +27,55 @@ def get_coaching_prompt(squat, bench, deadlift, bodyweight, height, age, goal, d
     carbs = int(bodyweight * 5.5)
     fats = int(bodyweight * 1.1)
     
+    # Calculate ratios to identify weak points (can be overridden by AI)
     bench_ratio = bench / bodyweight
-    squat_dl_ratio = squat / deadlift
+    squat_dl_ratio = squat / deadlift if deadlift > 0 else 1.0
     
-    if bench_ratio < 1.3:
+    weak_point = "balanced"
+    if bench_ratio < 1.3 and gender.lower() == "male":
         weak_point = "bench"
-    elif squat_dl_ratio < 0.75:
-        weak_point = "squat"
+    elif bench_ratio < 0.8 and gender.lower() == "female":
+        weak_point = "bench"
+    if target_week == 1:
+        json_schema = f"""JSON SCHEMA REQUIREMENTS (OUTPUT AS MARKDOWN BACKTICKS ```json ... ```):
+- Root object must contain: "summary" (string), "goal" (string), "training_days" (integer), "weak_point" (string), "week" (integer 1), "focus" (string), "diet" (object), "tips" (array of exactly 3 strings), and keys for each training day: "day1_ex", "day2_ex" ... up to "day{days}_ex".
+- Each "dayX_ex" must be an array of exercise objects.
+- Each exercise object must contain: "name" (string), "sets" (integer), "reps" (string), "weight" (integer representing kg), "rpe" (integer).
+- The "diet" object must contain: "calories": {calories}, "protein": {protein}, "carbs": {carbs}, "fats": {fats}, "maintenance": {int(maintenance)}, "tdee": {int(tdee)}.
+
+CRITICAL: Return ONLY Week 1 metrics and the global summary/diet. Do NOT return all 4 weeks. Ensure exercises are tailored for Week 1 (Volume Accumulation)."""
     else:
-        weak_point = "balanced"
+        json_schema = f"""JSON SCHEMA REQUIREMENTS (OUTPUT AS MARKDOWN BACKTICKS ```json ... ```):
+- Root object must contain: "week" (integer {target_week}), "focus" (string), and keys for each training day: "day1_ex", "day2_ex" ... up to "day{days}_ex".
+- Each "dayX_ex" must be an array of exercise objects.
+- Each exercise object must contain: "name" (string), "sets" (integer), "reps" (string), "weight" (integer representing kg), "rpe" (integer).
 
-    # FIXED: Escape all quotes, no nested JSON in template
-    prompt = f"""You are a powerlifting coach. Design a 4-week {days}-day program.
+CRITICAL: Return ONLY Week {target_week}. Do NOT return all 4 weeks. Ensure exercises are tailored for Week {target_week} of a typical powerlifting block."""
 
-ATHLETE: Squat {squat}kg, Bench {bench}kg, Deadlift {deadlift}kg, BW {bodyweight}kg, Age {age}, Height {height}cm
-WEAK POINT: {weak_point}
-GOAL: {goal}
-TDEE: {int(tdee)} kcal, TARGET: {calories} kcal, PROTEIN: {protein}g, CARBS: {carbs}g, FATS: {fats}g
+    prompt = f"""You are an elite Powerlifting AI Coach. Your task is to design Week {target_week} of a highly personalized, dynamic 4-week {days}-day training program for my client. 
 
-WEEKS:
-Week 1: 70-75% intensity, high volume, RPE 6-7
-Week 2: 75-80% intensity, moderate volume, RPE 7-8
-Week 3: 82-87% intensity, low volume, RPE 8-9
-Week 4: 60-65% intensity, high volume, RPE 5-6 (deload)
+Do NOT just return a generic template. You must carefully consider the athlete's age, gender, bodyweight, and current strength levels when selecting exercises, calculating weights, and planning volume. Keep exercise names very concise (e.g. "Squat", not "High Bar Back Squat with pause").
 
-STRATEGY: Vary day order each week. Include recovery days. Make it coaching, not template.
+ATHLETE PROFILE:
+- Gender: {gender}
+- Age: {age} years old
+- Bodyweight: {bodyweight} kg
+- Height: {height} cm
+- Experience Level Indicators: Squat {squat}kg, Bench {bench}kg, Deadlift {deadlift}kg
+- Identified Weak Point: {weak_point}
+- Training Goal: {goal}
+- Training Frequency: {days} days/week
 
-MAIN LIFTS (calculate for each week):
-Week 1: Squat {int(squat*0.73)}kg, Bench {int(bench*0.73)}kg, Deadlift {int(deadlift*0.70)}kg
-Week 2: Squat {int(squat*0.78)}kg, Bench {int(bench*0.78)}kg, Deadlift {int(deadlift*0.75)}kg
-Week 3: Squat {int(squat*0.85)}kg, Bench {int(bench*0.85)}kg, Deadlift {int(deadlift*0.85)}kg
-Week 4: Squat {int(squat*0.60)}kg, Bench {int(bench*0.60)}kg, Deadlift {int(deadlift*0.60)}kg
+YOUR INSTRUCTIONS:
+1. Act as a world-class coach. Empathize with an athlete who is a {age}-year-old {gender} weighing {bodyweight}kg. Their recovery needs, exercise selection (e.g., using variations like paused work, DB work, mobility drills) and rep schemes MUST be customized to them.
+2. If the athlete is lighter or older, adjust the absolute volume and intensity to prevent injury, perhaps adding more prehab/mobility work or accessory variations rather than just heavy barbell lifts.
+3. Calculate specific weights (in kg) for all main working sets based on their provided maxes ({squat}kg/{bench}kg/{deadlift}kg) and the phase (Week 1 volume, Week 3 peaking, etc.).
+4. Include specific assistance and accessory exercises that target their {weak_point} weak point.
+5. CRITICAL: Vary the number of exercises per day realistically! A brutal, heavy Deadlift or Squat day should only contain 3 to 4 exercises total due to severe CNS fatigue. A lighter Bench or localized Hypertrophy accessory day should contain 5 to 6 exercises. Do NOT make every single day the exact same length.
+6. Provide actionable, personalized "tips" at the end.
 
-Return ONLY this JSON structure (no markdown, no escaping):
+You MUST return ONLY a valid JSON object matching exactly the rules below. Do NOT include markdown blocks formatting (no ```json).
 
-{{
-  "summary": "Program for {bodyweight}kg athlete targeting {weak_point}",
-  "goal": "{goal}",
-  "training_days": {days},
-  "weak_point": "{weak_point}",
-  "weeks": [
-    {{
-      "week": 1,
-      "focus": "Technique and Volume",
-      "day1_ex": [
-        {{
-          "name": "Back Squat",
-          "sets": 5,
-          "reps": "5",
-          "weight": {int(squat*0.73)},
-          "rpe": 6
-        }}
-      ],
-      "day2_ex": [
-        {{
-          "name": "Bench Press",
-          "sets": 5,
-          "reps": "5",
-          "weight": {int(bench*0.73)},
-          "rpe": 6
-        }}
-      ],
-      "day3_ex": [
-        {{
-          "name": "Deadlifts",
-          "sets": 5,
-          "reps": "5",
-          "weight": {int(deadlift*0.70)},
-          "rpe": 6
-        }}
-      ],
-      "day4_ex": [
-        {{
-          "name": "Speed Bench",
-          "sets": 6,
-          "reps": "3",
-          "weight": {int(bench*0.60)},
-          "rpe": 5
-        }}
-      ]
-    }},
-    {{
-      "week": 2,
-      "focus": "Building Phase",
-      "day1_ex": [
-        {{
-          "name": "Deadlifts",
-          "sets": 5,
-          "reps": "4",
-          "weight": {int(deadlift*0.75)},
-          "rpe": 7
-        }}
-      ],
-      "day2_ex": [
-        {{
-          "name": "Back Squat",
-          "sets": 5,
-          "reps": "4",
-          "weight": {int(squat*0.78)},
-          "rpe": 7
-        }}
-      ],
-      "day3_ex": [
-        {{
-          "name": "Bench Press",
-          "sets": 5,
-          "reps": "4",
-          "weight": {int(bench*0.78)},
-          "rpe": 7
-        }}
-      ],
-      "day4_ex": [
-        {{
-          "name": "Speed Squats",
-          "sets": 6,
-          "reps": "3",
-          "weight": {int(squat*0.60)},
-          "rpe": 5
-        }}
-      ]
-    }},
-    {{
-      "week": 3,
-      "focus": "Peaking Phase",
-      "day1_ex": [
-        {{
-          "name": "Bench Press",
-          "sets": 5,
-          "reps": "3",
-          "weight": {int(bench*0.85)},
-          "rpe": 8
-        }}
-      ],
-      "day2_ex": [
-        {{
-          "name": "Deadlifts",
-          "sets": 5,
-          "reps": "3",
-          "weight": {int(deadlift*0.85)},
-          "rpe": 8
-        }}
-      ],
-      "day3_ex": [
-        {{
-          "name": "Back Squat",
-          "sets": 5,
-          "reps": "3",
-          "weight": {int(squat*0.85)},
-          "rpe": 8
-        }}
-      ],
-      "day4_ex": [
-        {{
-          "name": "Speed Bench",
-          "sets": 5,
-          "reps": "2",
-          "weight": {int(bench*0.70)},
-          "rpe": 6
-        }}
-      ]
-    }},
-    {{
-      "week": 4,
-      "focus": "Deload and Recovery",
-      "day1_ex": [
-        {{
-          "name": "Back Squat",
-          "sets": 4,
-          "reps": "5",
-          "weight": {int(squat*0.60)},
-          "rpe": 5
-        }}
-      ],
-      "day2_ex": [
-        {{
-          "name": "Bench Press",
-          "sets": 4,
-          "reps": "5",
-          "weight": {int(bench*0.60)},
-          "rpe": 5
-        }}
-      ],
-      "day3_ex": [
-        {{
-          "name": "Deadlifts",
-          "sets": 3,
-          "reps": "5",
-          "weight": {int(deadlift*0.60)},
-          "rpe": 5
-        }}
-      ],
-      "day4_ex": [
-        {{
-          "name": "Recovery Walk",
-          "sets": 1,
-          "reps": "20",
-          "weight": 0,
-          "rpe": 2
-        }}
-      ]
-    }}
-  ],
-  "diet": {{
-    "calories": {calories},
-    "protein": {protein},
-    "carbs": {carbs},
-    "fats": {fats},
-    "maintenance": {int(maintenance)},
-    "tdee": {int(tdee)}
-  }},
-  "tips": [
-    "Focus on {weak_point} weak point",
-    "Sleep 8+ hours daily",
-    "Track every session"
-  ]
-}}
-
-CRITICAL: Return ONLY the JSON above. No markdown, no backticks, no explanation."""
-
+{json_schema}
+"""
     return prompt

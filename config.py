@@ -4,13 +4,13 @@ Configuration for Powerlifting AI
 import streamlit as st
 
 try:
-    GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+    GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 except:
-    GROQ_API_KEY = ""
+    GEMINI_API_KEY = ""
 
-USE_GROQ = True
+USE_GEMINI = True
 
-# Using 70B versatile model - can handle more tokens
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_MAX_TOKENS = 6000  # Increased for better quality
-GROQ_TEMPERATURE = 0.2  # Low temp for consistent JSON
+# Using gemini-3.1-flash-lite-preview as requested to fix token limits
+GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MAX_TOKENS = 8192  # Increased for larger responses
+GEMINI_TEMPERATURE = 0.5  # Slightly higher for personalization while keeping JSON intact

@@ -1,3 +1,5 @@
+import json
+import re
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -14,6 +16,239 @@ GLOSSARY = {
     "deload": "Deload = A lighter week to let your body recover and come back stronger.",
 }
 
+_DAY_KEY_RE = re.compile(r"^day[_ ]?(\d+)(?:_.*)?$", re.IGNORECASE)
+
+
+def _to_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return list(value.values())
+    return [value]
+
+
+def _safe_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_exercise(ex):
+    if isinstance(ex, dict):
+        return {
+            "name": ex.get("name") or ex.get("exercise") or ex.get("movement") or "Exercise",
+            "sets": ex.get("sets", ex.get("set", "?")),
+            "reps": ex.get("reps", ex.get("rep", ex.get("range", "?"))),
+            "weight": ex.get("weight", ex.get("load", ex.get("kg", "?"))),
+            "rpe": ex.get("rpe", ex.get("intensity", "?")),
+            "note": ex.get("note", ex.get("notes", ex.get("cue", ""))),
+        }
+    if isinstance(ex, str):
+        return {
+            "name": ex,
+            "sets": "?",
+            "reps": "?",
+            "weight": "?",
+            "rpe": "?",
+            "note": "",
+        }
+    return {
+        "name": "Exercise",
+        "sets": "?",
+        "reps": "?",
+        "weight": "?",
+        "rpe": "?",
+        "note": "",
+    }
+
+
+def _normalize_day(day_data, default_day_number):
+    if isinstance(day_data, dict):
+        day_number = _safe_int(
+            day_data.get("day_number", day_data.get("day", default_day_number)),
+            default_day_number,
+        )
+        label = day_data.get("label") or day_data.get("name") or f"Day {day_number}"
+
+        raw_exercises = day_data.get("exercises")
+        if raw_exercises is None:
+            raw_exercises = day_data.get("workout")
+        if raw_exercises is None:
+            raw_exercises = day_data.get("movements")
+
+        if raw_exercises is None:
+            day_key_entries = sorted(
+                (
+                    (_safe_int(match.group(1), 0), value)
+                    for key, value in day_data.items()
+                    for match in [_DAY_KEY_RE.match(str(key))]
+                    if match
+                ),
+                key=lambda item: item[0],
+            )
+            if day_key_entries:
+                merged = []
+                for _, day_items in day_key_entries:
+                    merged.extend(_to_list(day_items))
+                raw_exercises = merged
+
+        exercises = [_normalize_exercise(ex) for ex in _to_list(raw_exercises)]
+        return {
+            "day_number": day_number,
+            "label": label,
+            "exercises": exercises,
+        }
+
+    if isinstance(day_data, list):
+        exercises = [_normalize_exercise(ex) for ex in day_data]
+        return {
+            "day_number": default_day_number,
+            "label": f"Day {default_day_number}",
+            "exercises": exercises,
+        }
+
+    return {
+        "day_number": default_day_number,
+        "label": f"Day {default_day_number}",
+        "exercises": [],
+    }
+
+
+def _extract_days_from_week(week_data):
+    if not isinstance(week_data, dict):
+        return _to_list(week_data)
+
+    raw_days = week_data.get("days")
+    if raw_days is None:
+        raw_days = week_data.get("sessions")
+    if raw_days is None:
+        raw_days = week_data.get("workouts")
+    if raw_days is not None:
+        return _to_list(raw_days)
+
+    day_key_entries = sorted(
+        (
+            (_safe_int(match.group(1), 0), value)
+            for key, value in week_data.items()
+            for match in [_DAY_KEY_RE.match(str(key))]
+            if match
+        ),
+        key=lambda item: item[0],
+    )
+    if day_key_entries:
+        return [
+            {
+                "day_number": day_number,
+                "label": f"Day {day_number}",
+                "exercises": day_items,
+            }
+            for day_number, day_items in day_key_entries
+        ]
+
+    return []
+
+
+def _coerce_plan_dict(plan_payload):
+    if isinstance(plan_payload, dict):
+        return plan_payload
+    if isinstance(plan_payload, str):
+        try:
+            parsed = json.loads(plan_payload)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def _normalize_plan(plan_payload):
+    plan = _coerce_plan_dict(plan_payload)
+    if not plan:
+        return {"weeks": [], "diet": {}, "tips": [], "training_days": 3}
+
+    nested_program = _coerce_plan_dict(plan.get("program"))
+    root = nested_program if nested_program else plan
+
+    weeks_raw = root.get("weeks")
+    week_items = []
+    if isinstance(weeks_raw, dict):
+        def _week_sort_key(key):
+            match = re.search(r"\d+", str(key))
+            return int(match.group()) if match else 9999
+
+        for key in sorted(weeks_raw.keys(), key=_week_sort_key):
+            week_items.append(weeks_raw[key])
+    elif isinstance(weeks_raw, list):
+        week_items = weeks_raw
+
+    if not week_items:
+        if root.get("days") is not None:
+            week_items = [{
+                "week": root.get("week", 1),
+                "focus": root.get("focus", "Training Program"),
+                "days": root.get("days", []),
+            }]
+        else:
+            top_day_keys = sorted(
+                (
+                    (_safe_int(match.group(1), 0), value)
+                    for key, value in root.items()
+                    for match in [_DAY_KEY_RE.match(str(key))]
+                    if match
+                ),
+                key=lambda item: item[0],
+            )
+            if top_day_keys:
+                week_obj = {
+                    "week": root.get("week", 1),
+                    "focus": root.get("focus", "Training Program"),
+                }
+                for day_number, day_items in top_day_keys:
+                    week_obj[f"day{day_number}_ex"] = day_items
+                week_items = [week_obj]
+
+    normalized_weeks = []
+    for idx, week_data in enumerate(week_items, start=1):
+        if isinstance(week_data, dict):
+            week_number = _safe_int(
+                week_data.get("week", week_data.get("week_number", idx)),
+                idx,
+            )
+            focus = week_data.get("focus") or week_data.get("title") or f"Week {week_number}"
+        else:
+            week_number = idx
+            focus = f"Week {week_number}"
+
+        raw_days = _extract_days_from_week(week_data)
+        normalized_days = [_normalize_day(day_data, day_idx) for day_idx, day_data in enumerate(raw_days, start=1)]
+        normalized_weeks.append({
+            "week": week_number,
+            "focus": focus,
+            "days": normalized_days,
+        })
+
+    training_days = _safe_int(root.get("training_days", plan.get("training_days", 0)), 0)
+    if training_days <= 0:
+        training_days = max((len(week.get("days", [])) for week in normalized_weeks), default=3)
+
+    diet = root.get("diet") if isinstance(root.get("diet"), dict) else {}
+    if not diet and isinstance(plan.get("diet"), dict):
+        diet = plan.get("diet")
+
+    tips = root.get("tips") if isinstance(root.get("tips"), list) else []
+    if not tips and isinstance(plan.get("tips"), list):
+        tips = plan.get("tips")
+
+    normalized_plan = dict(root)
+    normalized_plan["weeks"] = normalized_weeks
+    normalized_plan["training_days"] = training_days
+    normalized_plan["diet"] = diet
+    normalized_plan["tips"] = tips
+    return normalized_plan
+
 def get_rpe_color(rpe_str):
     try:
         rpe = float(str(rpe_str))
@@ -27,6 +262,7 @@ def get_rpe_color(rpe_str):
 
 def show_exercise(ex):
     """Display exercise with safe field access"""
+    ex = _normalize_exercise(ex)
     # Safe field extraction
     name = ex.get('name', 'Exercise')
     sets = ex.get('sets', '?')
@@ -63,12 +299,16 @@ def show_exercise(ex):
 def show_dashboard(user, plan_row, log):
     from datetime import datetime
     user_id        = user.id
-    plan           = plan_row["plan_data"]
-    if isinstance(plan, dict) and isinstance(plan.get("program"), dict):
-        nested_program = plan.get("program", {})
-        if nested_program.get("weeks"):
-            plan = nested_program
-    start_date     = datetime.strptime(plan_row["start_date"], "%Y-%m-%d").date()
+    plan           = _normalize_plan(plan_row.get("plan_data"))
+
+    start_date_raw = plan_row.get("start_date")
+    if not start_date_raw and isinstance(plan, dict):
+        start_date_raw = plan.get("start_date")
+    try:
+        start_date = datetime.strptime(str(start_date_raw), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        start_date = date.today()
+
     today          = date.today()
     days_elapsed   = (today - start_date).days
     training_days  = plan.get("training_days", 3)
@@ -83,7 +323,7 @@ def show_dashboard(user, plan_row, log):
     week_progress  = int((week_completed / len(week_sessions)) * 100) if week_sessions else 0
 
     # ── Program Complete ──
-    if total_completed >= total_sessions:
+    if total_sessions > 0 and total_completed >= total_sessions:
         st.balloons()
         st.success("🏆 YOU COMPLETED YOUR 4-WEEK PROGRAM! ABSOLUTE BEAST MODE!")
         col1, col2, col3 = st.columns(3)
@@ -102,6 +342,9 @@ def show_dashboard(user, plan_row, log):
     # ── Tab 1: Dashboard ──
     with tab1:
         st.subheader("📊 Your Progress")
+        if total_sessions == 0:
+            st.warning("No calendar sessions could be derived from this saved format yet. Your plan details are still available in Full Program.")
+
         col1, col2, col3 = st.columns(3)
         col1.metric("✅ Sessions Done", f"{total_completed}/{total_sessions}")
         col2.metric("🏆 Total Score",   f"{total_score} pts")
@@ -183,51 +426,49 @@ def show_dashboard(user, plan_row, log):
                     st.success(f"🔥 Session logged! Score: **{score}/100**")
                     st.rerun()
         else:
-            st.info("🛌 Rest day today! Recovery is part of the program.")
+            if total_sessions == 0:
+                st.info("Open the Full Program tab to review your exercises. Session dates will appear when schedule fields are detected.")
+            else:
+                st.info("🛌 Rest day today! Recovery is part of the program.")
 
         st.divider()
         st.subheader("📅 Full Schedule")
-        for s in all_sessions:
-            sid          = s["session_id"]
-            s_log        = log.get(sid, {})
-            is_completed = s_log.get("completed", False)
-            is_today     = s["date"] == str(today)
-            is_missed    = s["date"] < str(today) and not is_completed
-            score        = s_log.get("score", 0)
+        if not all_sessions:
+            st.info("No dated schedule generated for this plan format yet.")
+        else:
+            for s in all_sessions:
+                sid          = s["session_id"]
+                s_log        = log.get(sid, {})
+                is_completed = s_log.get("completed", False)
+                is_today     = s["date"] == str(today)
+                is_missed    = s["date"] < str(today) and not is_completed
+                score        = s_log.get("score", 0)
 
-            if is_today:
-                icon, extra_class = "👉", "today"
-            elif is_completed:
-                icon, extra_class = "✅", "completed"
-            elif is_missed:
-                icon, extra_class = "❌", "missed"
-            else:
-                icon, extra_class = "⬜", ""
+                if is_today:
+                    icon, extra_class = "👉", "today"
+                elif is_completed:
+                    icon, extra_class = "✅", "completed"
+                elif is_missed:
+                    icon, extra_class = "❌", "missed"
+                else:
+                    icon, extra_class = "⬜", ""
 
-            score_badge = f'<span style="color:#FFD700;font-size:0.8rem;margin-left:auto;">⭐ {score}/100</span>' if is_completed else ""
-            st.markdown(f"""
-            <div class="schedule-item {extra_class}">
-                <span style="font-size:1.1rem">{icon}</span>
-                <span style="flex:1;font-size:0.88rem;color:#bbb;">
-                    <strong style="color:#e0e0e0;">Wk {s['week']}</strong> — {s['label']}
-                    <span style="color:#444;font-size:0.75rem;margin-left:6px;">({s['date']})</span>
-                </span>
-                {score_badge}
-            </div>
-            """, unsafe_allow_html=True)
+                score_badge = f'<span style="color:#FFD700;font-size:0.8rem;margin-left:auto;">⭐ {score}/100</span>' if is_completed else ""
+                st.markdown(f"""
+                <div class="schedule-item {extra_class}">
+                    <span style="font-size:1.1rem">{icon}</span>
+                    <span style="flex:1;font-size:0.88rem;color:#bbb;">
+                        <strong style="color:#e0e0e0;">Wk {s['week']}</strong> — {s['label']}
+                        <span style="color:#444;font-size:0.75rem;margin-left:6px;">({s['date']})</span>
+                    </span>
+                    {score_badge}
+                </div>
+                """, unsafe_allow_html=True)
 
     # ── Tab 2: Full Program ──
     with tab2:
         st.subheader("📋 Your Full 4-Week Program")
         weeks = plan.get("weeks", []) if isinstance(plan, dict) else []
-
-        # Fallback: some plan formats store all days at top-level.
-        if not weeks and isinstance(plan, dict) and plan.get("days"):
-            weeks = [{
-                "week": 1,
-                "focus": plan.get("focus", "Training Program"),
-                "days": plan.get("days", []),
-            }]
 
         if not weeks:
             st.warning("No program weeks found in your saved plan. Generate a new plan to populate this section.")

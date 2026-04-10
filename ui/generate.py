@@ -46,6 +46,7 @@ def show_generate(user_id):
     """, unsafe_allow_html=True)
 
     with st.form("user_form"):
+        # ── Row 1: Lift Maxes ──
         col1, col2, col3 = st.columns(3)
         with col1:
             squat = st.number_input("🦵 Squat Max (kg)", min_value=0)
@@ -54,6 +55,7 @@ def show_generate(user_id):
         with col3:
             deadlift = st.number_input("⚡ Deadlift Max (kg)", min_value=0)
 
+        # ── Row 2: Body Stats ──
         col4, col5, col6, col_g = st.columns(4)
         with col4:
             bodyweight = st.number_input("⚖️ Bodyweight (kg)", min_value=0)
@@ -64,17 +66,38 @@ def show_generate(user_id):
         with col_g:
             gender = st.selectbox("🚻 Gender", ["Male", "Female"])
 
+        # ── Row 3: Training Experience + Goal ──
+        col_exp, col_goal = st.columns(2)
+        with col_exp:
+            years_training = st.selectbox(
+                "🏋️ Years of Training Experience",
+                options=[0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 15.0],
+                format_func=lambda x: (
+                    f"{x:.0f}+ years (Elite)" if x >= 5 else
+                    f"{x:.0f} years (Advanced)" if x >= 3 else
+                    f"{x:.1f} years (Intermediate)" if x >= 1 else
+                    f"{x:.1f} years (Beginner)" if x > 0 else
+                    "Brand New (< 6 months)"
+                ),
+                index=0,
+                help="This shapes exercise complexity, RPE ranges, and periodization style."
+            )
+        with col_goal:
+            goal = st.selectbox(
+                "🎯 Your Goal",
+                ["Build Strength", "Bulk", "Cut", "Powerbuilding"],
+                help="Each goal adjusts rep ranges, intensity, volume, and rest periods - not just diet."
+            )
+
+        # ── Row 4: Diet Type + Food ──
         col7, col8 = st.columns(2)
         with col7:
-            goal = st.selectbox("🎯 Your Goal", ["Build Strength", "Bulk", "Cut"])
-        with col8:
             food = st.selectbox("🍽️ Diet Type", ["Vegetarian", "Non-Vegetarian", "Eggetarian"])
-
-        col9, col10 = st.columns(2)
-        with col9:
-            days = st.selectbox("📅 Training Days/Week", [3, 4, 5, 6])
-        with col10:
+        with col8:
             activity = st.selectbox("🏃 Activity Level", ["Sedentary", "Light", "Moderate", "Very Active"])
+
+        # ── Row 5: Training Days ──
+        days = st.selectbox("📅 Training Days/Week", [3, 4, 5, 6])
 
         submitted = st.form_submit_button("🚀 GENERATE MY PLAN", use_container_width=True)
 
@@ -93,7 +116,7 @@ def show_generate(user_id):
             st.stop()
 
         # ============================================================
-        # STEP 1: Generate training plan from Groq AI
+        # STEP 1: Generate training plan from Gemini AI
         # ============================================================
         with st.spinner("🔥 AI Coach is designing your personalized program..."):
             try:
@@ -104,7 +127,7 @@ def show_generate(user_id):
                 model = genai.GenerativeModel(model_name=GEMINI_MODEL)
                 
                 # ============================================================
-                # NEW MULTI-PHASE GENERATION ARCHITECTURE to bypass token caps
+                # MULTI-PHASE GENERATION: 1 API call per week to stay under token caps
                 # ============================================================
                 weeks_data = []
                 base_data = {}
@@ -118,6 +141,7 @@ def show_generate(user_id):
                         squat=int(squat), bench=int(bench), deadlift=int(deadlift),
                         bodyweight=int(bodyweight), height=int(height), age=int(age),
                         gender=gender, goal=goal, days=int(days), food=food, activity=activity,
+                        years_training=float(years_training),
                         target_week=w
                     )
                     
@@ -143,20 +167,17 @@ def show_generate(user_id):
                             "goal": week_json.get("goal", goal),
                             "training_days": int(days),
                             "weak_point": week_json.get("weak_point", "balanced"),
+                            "experience_level": week_json.get("experience_level", ""),
+                            "years_training": float(years_training),
                             "diet": week_json.get("diet", {}),
                             "tips": week_json.get("tips", [])
                         }
                     
-                    # Store week separately
-                    week_obj = {
-                        "week": w,
-                        "focus": week_json.get("focus", f"Week {w} Training")
-                    }
-                    
-                    # Grab dayX_ex arrays logically
-                    for i in range(1, int(days) + 1):
-                        day_key = f"day{i}_ex"
-                        week_obj[day_key] = week_json.get(day_key, [])
+                    # Preserve all generated keys so the json_builder fallback can find exercises
+                    week_obj = week_json.copy()
+                    week_obj["week"] = w
+                    if "focus" not in week_obj:
+                        week_obj["focus"] = week_json.get("focus", f"Week {w} Training")
                         
                     weeks_data.append(week_obj)
                     
@@ -181,7 +202,10 @@ def show_generate(user_id):
                 # STEP 3: Calculate calorie needs
                 # ============================================================
                 # Mifflin-St Jeor equation for maintenance
-                maintenance = (10 * int(bodyweight)) + (6.25 * int(height)) - (5 * int(age)) + 5
+                if gender == "Male":
+                    maintenance = (10 * int(bodyweight)) + (6.25 * int(height)) - (5 * int(age)) + 5
+                else:
+                    maintenance = (10 * int(bodyweight)) + (6.25 * int(height)) - (5 * int(age)) - 161
                 
                 # Apply activity level multiplier
                 activity_multipliers = {
@@ -193,18 +217,32 @@ def show_generate(user_id):
                 
                 tdee = maintenance * activity_multipliers.get(activity, 1.55)
                 
-                # Adjust for goal
-                if goal == "Build Strength":
-                    calories = int(tdee + 300)  # +300 cal surplus
-                elif goal == "Bulk":
-                    calories = int(tdee + 500)  # +500 cal surplus
-                else:  # Cut
-                    calories = int(tdee - 500)  # -500 cal deficit
+                # Adjust for goal — including Powerbuilding
+                calorie_adjustments = {
+                    "Build Strength": 300,
+                    "Bulk": 500,
+                    "Cut": -500,
+                    "Powerbuilding": 400,
+                }
+                calories = int(tdee + calorie_adjustments.get(goal, 300))
                 
-                # Calculate macros
-                protein = int(int(bodyweight) * 2.2)
-                carbs = int(int(bodyweight) * 5.5)
-                fats = int(int(bodyweight) * 1.1)
+                # Calculate macros — adjusted by goal
+                if goal == "Cut":
+                    protein = int(int(bodyweight) * 2.4)    # Higher protein to preserve muscle
+                    carbs = int(int(bodyweight) * 4.0)      # Reduced carbs in deficit
+                    fats = int(int(bodyweight) * 0.9)       # Slightly lower fats
+                elif goal == "Bulk":
+                    protein = int(int(bodyweight) * 2.0)
+                    carbs = int(int(bodyweight) * 6.0)      # Higher carbs for surplus
+                    fats = int(int(bodyweight) * 1.2)
+                elif goal == "Powerbuilding":
+                    protein = int(int(bodyweight) * 2.3)    # High protein for dual goals
+                    carbs = int(int(bodyweight) * 5.5)
+                    fats = int(int(bodyweight) * 1.1)
+                else:  # Build Strength
+                    protein = int(int(bodyweight) * 2.2)
+                    carbs = int(int(bodyweight) * 5.5)
+                    fats = int(int(bodyweight) * 1.1)
                 
                 # ============================================================
                 # STEP 4: Generate personalized diet with alternatives
@@ -247,6 +285,7 @@ def show_generate(user_id):
                 # ============================================================
                 data["start_date"] = str(date.today())
                 data["training_days"] = int(days)
+                data["years_training"] = float(years_training)
                 
                 # ============================================================
                 # STEP 7: Save complete plan to database

@@ -179,7 +179,7 @@ def show_landing():
 
     <nav class="lp-nav">
         <p class="lp-logo">🏋️ IRONIQ</p>
-        <a href="?nav=login" class="lp-nav-btn">Login →</a>
+        <a href="?nav=login" target="_self" class="lp-nav-btn">Login →</a>
     </nav>
     """, unsafe_allow_html=True)
 
@@ -196,7 +196,7 @@ def show_landing():
             Indian diet plans, and real progress tracking.
         </span>
         <br><br>
-        <a href="?nav=login" class="lp-cta-btn">🚀 GET STARTED FREE</a>
+        <a href="?nav=login" target="_self" class="lp-cta-btn">🚀 GET STARTED FREE</a>
     </div>
 
     <div style="text-align:center;">
@@ -288,7 +288,7 @@ def show_landing():
         <div class="lp-cta-wrap">
             <div class="lp-cta-title">Ready to Forge Your Strength?</div>
             <div class="lp-cta-sub">Zero cost. No credit card. Just lift.</div>
-            <a href="?nav=login" class="lp-cta-btn">🚀 START FOR FREE</a>
+            <a href="?nav=login" target="_self" class="lp-cta-btn">🚀 START FOR FREE</a>
         </div>
     </div>
     """, unsafe_allow_html=True)

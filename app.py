@@ -106,7 +106,7 @@ if user:
             <div class="app-topbar-title">🏋️ IRONIQ</div>
             <div class="app-topbar-email">{email_display}</div>
         </div>
-        <a href="?nav=logout" class="app-logout-html">🚪 Logout</a>
+        <a href="?nav=logout" target="_self" class="app-logout-html">🚪 Logout</a>
     </div>
     """, unsafe_allow_html=True)
 

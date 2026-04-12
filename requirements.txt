@@ -1,5 +1,5 @@
 streamlit
 google-generativeai
 pandas
-supabase
-dotenv
+supabase==2.7.4
+python-dotenv

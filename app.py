@@ -9,7 +9,11 @@ from ui.dashboard import show_dashboard
 from ui.generate import show_generate
 from database import load_plan, load_logs
 
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+api_key = st.secrets.get("GEMINI_API_KEY") or ""
+if not api_key:
+    st.error("⚠️ GEMINI_API_KEY not configured. Please add it to .streamlit/secrets.toml")
+    st.stop()
+genai.configure(api_key=api_key)
 
 st.set_page_config(
     page_title="IRONIQ — Indian Powerlifting AI",

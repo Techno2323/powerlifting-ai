@@ -2,7 +2,7 @@
 import logging
 import re
 import streamlit as st
-from database import supabase
+from database import get_supabase
 from core.exceptions import AuthError, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class AuthManager:
         try:
             self._validate_email(email)
             self._validate_password(password)
-            res = supabase.auth.sign_up({"email": email.strip(), "password": password})
+            res = get_supabase().auth.sign_up({"email": email.strip(), "password": password})
             logger.info("sign_up succeeded for %s", email)
             return res, None
         except ValidationError as exc:
@@ -54,7 +54,7 @@ class AuthManager:
             self._validate_email(email)
             if not password:
                 raise ValidationError("Password must not be empty.")
-            res = supabase.auth.sign_in_with_password(
+            res = get_supabase().auth.sign_in_with_password(
                 {"email": email.strip(), "password": password}
             )
             # 🔑 CRITICAL: Store JWT in session_state, not in the shared client
@@ -73,17 +73,19 @@ class AuthManager:
     def sign_out(self) -> None:
         """Sign the current user out and clear all session state."""
         try:
-            supabase.auth.sign_out()
+            get_supabase().auth.sign_out()
             logger.info("sign_out succeeded")
         except Exception as exc:
             logger.warning("sign_out encountered an error (ignored): %s", exc)
         st.session_state.clear()
         st.rerun()
 
-    def get_user(self):
+    def get_user(self, access_token: str | None = None):
         """Return the currently authenticated user object, or None."""
         try:
-            return supabase.auth.get_user()
+            if access_token:
+                return get_supabase().auth.get_user(access_token)
+            return get_supabase().auth.get_user()
         except Exception as exc:
             logger.warning("get_user failed: %s", exc)
             return None
@@ -106,5 +108,5 @@ def sign_out() -> None:
     _auth_manager.sign_out()
 
 
-def get_user():
-    return _auth_manager.get_user()
+def get_user(access_token: str | None = None):
+    return _auth_manager.get_user(access_token)

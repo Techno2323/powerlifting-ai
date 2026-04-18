@@ -5,7 +5,13 @@ from core.exceptions import DatabaseError, ValidationError
 
 logger = logging.getLogger(__name__)
 
-supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+def get_supabase():
+    if "_supabase_client" not in st.session_state:
+        st.session_state["_supabase_client"] = create_client(
+            st.secrets["SUPABASE_URL"], 
+            st.secrets["SUPABASE_KEY"]
+        )
+    return st.session_state["_supabase_client"]
 
 
 # ── Shared validation helper ──────────────────────────────────────────────────
@@ -26,7 +32,7 @@ class PlanRepository:
         _require_user_id(user_id)
         try:
             res = (
-                supabase.table("plans")
+                get_supabase().table("plans")
                 .select("*")
                 .eq("user_id", user_id)
                 .order("created_at", desc=True)
@@ -46,8 +52,8 @@ class PlanRepository:
         if not isinstance(plan_data, dict):
             raise ValidationError("plan_data must be a dictionary.")
         try:
-            supabase.table("plans").delete().eq("user_id", user_id).execute()
-            supabase.table("plans").insert({
+            get_supabase().table("plans").delete().eq("user_id", user_id).execute()
+            get_supabase().table("plans").insert({
                 "user_id":    user_id,
                 "plan_data":  plan_data,
                 "start_date": plan_data["start_date"],
@@ -62,8 +68,8 @@ class PlanRepository:
         """Delete active plan AND all session logs for this user."""
         _require_user_id(user_id)
         try:
-            supabase.table("plans").delete().eq("user_id", user_id).execute()
-            supabase.table("workout_logs").delete().eq("user_id", user_id).execute()
+            get_supabase().table("plans").delete().eq("user_id", user_id).execute()
+            get_supabase().table("workout_logs").delete().eq("user_id", user_id).execute()
             logger.info("delete_plan succeeded for user %s", user_id)
         except Exception as exc:
             logger.error("delete_plan failed for user %s: %s", user_id, exc)
@@ -73,7 +79,7 @@ class PlanRepository:
         """Copy current plan + log snapshot into plan_history for long-term tracking."""
         _require_user_id(user_id)
         try:
-            supabase.table("plan_history").insert({
+            get_supabase().table("plan_history").insert({
                 "user_id":   user_id,
                 "plan_data": plan_data,
                 "log_data":  log_data,
@@ -88,7 +94,7 @@ class PlanRepository:
         _require_user_id(user_id)
         try:
             res = (
-                supabase.table("plan_history")
+                get_supabase().table("plan_history")
                 .select("*")
                 .eq("user_id", user_id)
                 .order("created_at", desc=True)
@@ -110,7 +116,7 @@ class WorkoutRepository:
         _require_user_id(user_id)
         try:
             res = (
-                supabase.table("workout_logs")
+                get_supabase().table("workout_logs")
                 .select("*")
                 .eq("user_id", user_id)
                 .execute()
@@ -131,7 +137,7 @@ class WorkoutRepository:
             raise ValidationError("entry must be a dictionary.")
         try:
             existing = (
-                supabase.table("workout_logs")
+                get_supabase().table("workout_logs")
                 .select("id")
                 .eq("user_id", user_id)
                 .eq("session_id", session_id)
@@ -139,14 +145,14 @@ class WorkoutRepository:
             )
             if existing.data:
                 (
-                    supabase.table("workout_logs")
+                    get_supabase().table("workout_logs")
                     .update(entry)
                     .eq("user_id", user_id)
                     .eq("session_id", session_id)
                     .execute()
                 )
             else:
-                supabase.table("workout_logs").insert(
+                get_supabase().table("workout_logs").insert(
                     {**entry, "user_id": user_id, "session_id": session_id}
                 ).execute()
             logger.info("save_log_entry succeeded for user %s session %s", user_id, session_id)

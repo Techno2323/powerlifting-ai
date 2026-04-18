@@ -3,3 +3,4 @@ google-generativeai
 pandas
 supabase==2.7.4
 python-dotenv
+extra-streamlit-components==0.1.81

@@ -38,7 +38,7 @@ def show_login():
     """, unsafe_allow_html=True)
 
     # ── Back navigation ──
-    st.markdown('<a href="?nav=landing" class="login-back-btn">← Back to Home</a>', unsafe_allow_html=True)
+    st.markdown('<a href="?nav=landing" target="_self" class="login-back-btn">← Back to Home</a>', unsafe_allow_html=True)
 
     # ── Header ──
     st.markdown("""
@@ -66,6 +66,7 @@ def show_login():
         st.markdown("<br>", unsafe_allow_html=True)
         email    = st.text_input("Email address", key="login_email",    placeholder="you@example.com")
         password = st.text_input("Password",      key="login_password", placeholder="••••••••", type="password")
+        remember = st.checkbox("Remember me", key="login_remember")
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Login", use_container_width=True, key="login_btn"):
             if email and password:
@@ -75,6 +76,7 @@ def show_login():
                 else:
                     st.session_state["user"] = res.user
                     st.session_state["page"] = "app"
+                    st.session_state["_remember_login"] = remember
                     st.success("Welcome back! 💪")
                     st.rerun()
             else:

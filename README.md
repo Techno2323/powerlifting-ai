@@ -1,75 +1,90 @@
-# Powerlifting AI
+# IRONIQ - Indian Powerlifting AI
 
 ## Overview
-Powerlifting AI is an intelligent application designed to help powerlifters improve their performance through data analysis and AI-driven insights. The application offers personalized training programs, performance tracking, and advanced analytics to optimize the lifting experience.
+Welcome to the **IRONIQ** project! 🤖💪 The Indian Powerlifting AI project aims to revolutionize how athletes train and achieve their fitness goals through advanced technology. With personalized training plans and intelligent tracking, IRONIQ is your ultimate workout companion!
 
 ## Features
-- **Personalized Training Plans**: Tailored routines based on user goals and performance metrics.
-- **Performance Tracking**: Log lifts, track progress, and visualize improvements over time.
-- **AI Coaching**: Get insights and suggestions based on data collected from lifts.
-- **Community Support**: Connect with other powerlifters and share progress.
+- Personalized training plans tailored to your experience level
+- AI-generated workout recommendations
+- Progress tracking and workout logging
+- Integration with Streamlit for a user-friendly web interface
+- Utilization of Supabase for backend data management
 
-## Architecture
-The architecture of Powerlifting AI consists of the following components:
-- **Frontend**: A responsive web application built using React.js, allowing users to interact seamlessly.
-- **Backend**: A RESTful API developed in Node.js, handling data processing and business logic.
-- **Database**: MongoDB for storing user data, performance metrics, and training programs.
-- **AI Model**: A machine learning model trained on powerlifting data to provide personalized recommendations.
+## Tech Stack
+- **Frontend:** Streamlit
+- **Backend:** Supabase
+- **AI Technologies:** Machine Learning models for training recommendations
+
+## System Architecture Diagram
+![System Architecture](link_to_diagram)
 
 ## Setup Instructions
-### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB
-- npm or yarn
-
-### Installation Steps
-1. **Clone the repository**:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/<owner>/powerlifting-ai.git
+   git clone https://github.com/Techno2323/powerlifting-ai.git
    cd powerlifting-ai
    ```
-2. **Install dependencies**:
+2. Set up your environment with Streamlit:
    ```bash
-   cd frontend
-   npm install
-   cd ../backend
-   npm install
+   pip install streamlit
    ```
-3. **Set up the database**:
-   - Ensure MongoDB is running and create a new database:
-   ```bash
-   mongo
-   use powerlifting_ai
-   ```
-4. **Run the application**:
-   - Start the backend server:
-   ```bash
-   cd backend
-   npm start
-   ```
-   - Start the frontend application:
-   ```bash
-   cd frontend
-   npm start
-   ```
+3. Create an account on Supabase and set up your database.
+4. Update the `.streamlit/secrets.toml` file with your Supabase credentials (See Configuration Guide).
 
-## Usage Guide
-1. **Creating an Account**: Register for a new account on the web application.
-2. **Logging In**: Use your credentials to log in to your profile.
-3. **Creating a Training Program**: Navigate to the training section and complete the form to generate a personalized program.
-4. **Logging Lifts**: Input your lifting information regularly to track progress.
-5. **Getting Insights**: Check the analytics dashboard for AI-driven insights and recommendations based on your performance.
+## Configuration Guide for `.streamlit/secrets.toml`
+```toml
+[database]
+url = "YOUR_SUPABASE_URL"
+key = "YOUR_SUPABASE_ANON_KEY"
+```
 
-## Contributing
-Contributions are welcome! Please follow these steps to contribute:
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Create a new Pull Request.
+## Usage Walkthrough
+### Login
+- Navigate to the login page to enter your credentials.
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Creating Your First Plan
+- Follow the prompts to set up your personalized training plan.
 
-## Contact
-For further inquiries, please reach out to the project maintainer at: [Techno2323](mailto:techno2323@example.com)
+### Logging Workouts
+- Use the workout logging feature to track your exercises and progress.
+
+## Project Structure
+```
+/powerlifting-ai
+├── .streamlit
+│   └── secrets.toml
+├── main.py
+└── requirements.txt
+```
+
+## Training Experience Levels
+- **Beginner:** For those just starting out.
+- **Intermediate:** For users who have some experience.
+- **Advanced:** For seasoned lifters accustomed to heavy training.
+- **Elite:** For competitive powerlifters.
+
+## Goal Types
+- **Cut:** Weight loss and fat reduction.
+- **Bulk:** Muscle gain and growth.
+- **Build Strength:** Targeting strength improvements.
+- **Powerbuilding:** A mix of bodybuilding and powerlifting.
+
+## Diet Options
+- **Vegetarian:** Plant-based meal plans.
+- **Non-Vegetarian:** Includes meat in meal plans.
+- **Eggetarian:** Vegetarian with eggs included.
+
+## API Keys and Credentials Needed
+Make sure to obtain the necessary API keys from Supabase and update your secrets.
+
+## Troubleshooting Section
+- If you encounter issues, follow these steps:
+  - Ensure all dependencies are installed.
+  - Check your Supabase credentials in `.streamlit/secrets.toml`.
+
+## Contributing Guidelines
+- Fork the repository and create a new branch for your feature.
+- Follow the coding standards and ensure your code is well-documented.
+- Submit a pull request with a clear description of your changes.
+
+Happy lifting! 💪
